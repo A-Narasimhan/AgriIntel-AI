@@ -1,0 +1,166 @@
+{
+  "description": "Evaluation benchmark queries across 5 target crops for AgriIntel AI",
+  "version": "1.0",
+  "queries": [
+    {
+      "id": "RICE-01",
+      "crop": "rice",
+      "category": "disease",
+      "query": "What are the symptoms and chemical control for blast disease in rice?",
+      "expected_topics": ["blast", "magnaporthe oryzae", "tricyclazole", "fungicide"],
+      "expected_source": "rice_cultivation_and_protection.pdf"
+    },
+    {
+      "id": "RICE-02",
+      "crop": "rice",
+      "category": "irrigation",
+      "query": "How should Alternate Wetting and Drying (AWD) be implemented for paddy irrigation?",
+      "expected_topics": ["alternate wetting and drying", "awd", "water tube", "irrigation"],
+      "expected_source": "rice_cultivation_and_protection.pdf"
+    },
+    {
+      "id": "RICE-03",
+      "crop": "rice",
+      "category": "cultivation",
+      "query": "What is the recommended nursery area, seed rate, and seedling age for transplanting rice?",
+      "expected_topics": ["nursery", "seed rate", "transplanting", "spacing"],
+      "expected_source": "rice_cultivation_and_protection.pdf"
+    },
+    {
+      "id": "RICE-04",
+      "crop": "rice",
+      "category": "weed",
+      "query": "Which pre-emergence herbicide is recommended for weed control in puddle transplanted rice?",
+      "expected_topics": ["pretilachlor", "herbicide", "weed", "cono-weeding"],
+      "expected_source": "rice_cultivation_and_protection.pdf"
+    },
+    {
+      "id": "COTTON-01",
+      "crop": "cotton",
+      "category": "pest",
+      "query": "What is the Economic Threshold Level (ETL) and management for Pink Bollworm in cotton?",
+      "expected_topics": ["pink bollworm", "etl", "pheromone trap", "chlorantraniliprole", "spinosad"],
+      "expected_source": "cotton_ipm_and_practices.pdf"
+    },
+    {
+      "id": "COTTON-02",
+      "crop": "cotton",
+      "category": "disease",
+      "query": "How does Cotton Leaf Curl Virus spread and what are the vector control measures?",
+      "expected_topics": ["cotton leaf curl virus", "whitefly", "bemisia tabaci", "vector"],
+      "expected_source": "cotton_ipm_and_practices.pdf"
+    },
+    {
+      "id": "COTTON-03",
+      "crop": "cotton",
+      "category": "irrigation",
+      "query": "What are the critical stages for irrigation in Bt cotton under water-limited conditions?",
+      "expected_topics": ["square initiation", "flowering", "boll development", "drip irrigation"],
+      "expected_source": "cotton_ipm_and_practices.pdf"
+    },
+    {
+      "id": "COTTON-04",
+      "crop": "cotton",
+      "category": "cultivation",
+      "query": "What is the recommended spacing for hybrid cotton and how can square shedding be prevented?",
+      "expected_topics": ["spacing", "naa", "planofix", "square drop"],
+      "expected_source": "cotton_ipm_and_practices.pdf"
+    },
+    {
+      "id": "MAIZE-01",
+      "crop": "maize",
+      "category": "pest",
+      "query": "How to identify Fall Armyworm (FAW) damage in maize whorls and what is the ICAR spray protocol?",
+      "expected_topics": ["fall armyworm", "spodoptera frugiperda", "whorl", "chlorantraniliprole", "emamectin benzoate"],
+      "expected_source": "maize_production_and_protection.pdf"
+    },
+    {
+      "id": "MAIZE-02",
+      "crop": "maize",
+      "category": "disease",
+      "query": "What are the symptoms and fungicide treatment for Turcicum leaf blight in maize?",
+      "expected_topics": ["turcicum", "exserohilum turcicum", "mancozeb", "leaf blight"],
+      "expected_source": "maize_production_and_protection.pdf"
+    },
+    {
+      "id": "MAIZE-03",
+      "crop": "maize",
+      "category": "nutrient",
+      "query": "What is the balanced NPK and zinc fertilizer schedule for grain hybrid maize?",
+      "expected_topics": ["npk", "urea", "zinc sulphate", "knee-high", "tasseling"],
+      "expected_source": "maize_production_and_protection.pdf"
+    },
+    {
+      "id": "MAIZE-04",
+      "crop": "maize",
+      "category": "cultivation",
+      "query": "What is the recommended row-to-row spacing and seed rate for hybrid maize cultivation?",
+      "expected_topics": ["spacing", "60 x 20", "seed rate", "seed treatment"],
+      "expected_source": "maize_production_and_protection.pdf"
+    },
+    {
+      "id": "GROUNDNUT-01",
+      "crop": "groundnut",
+      "category": "disease",
+      "query": "What causes Tikka leaf spot in groundnut and what fungicides control it?",
+      "expected_topics": ["tikka", "cercospora", "tebuconazole", "chlorothalonil"],
+      "expected_source": "groundnut_production_guide.pdf"
+    },
+    {
+      "id": "GROUNDNUT-02",
+      "crop": "groundnut",
+      "category": "nutrient",
+      "query": "Why and when is agricultural gypsum applied in groundnut fields and at what dosage?",
+      "expected_topics": ["gypsum", "calcium", "pegging", "400 kg"],
+      "expected_source": "groundnut_production_guide.pdf"
+    },
+    {
+      "id": "GROUNDNUT-03",
+      "crop": "groundnut",
+      "category": "irrigation",
+      "query": "At what growth stages is water stress most damaging to groundnut pod yield?",
+      "expected_topics": ["flowering", "pegging", "pod enlargement", "moisture"],
+      "expected_source": "groundnut_production_guide.pdf"
+    },
+    {
+      "id": "GROUNDNUT-04",
+      "crop": "groundnut",
+      "category": "pest",
+      "query": "How to prevent collar rot and soil-borne fungal pathogens during groundnut germination?",
+      "expected_topics": ["collar rot", "trichoderma", "aspergillus niger", "seed treatment"],
+      "expected_source": "groundnut_production_guide.pdf"
+    },
+    {
+      "id": "SOYBEAN-01",
+      "crop": "soybean",
+      "category": "disease",
+      "query": "What transmits Yellow Mosaic Virus in soybean and what are the control measures?",
+      "expected_topics": ["yellow mosaic", "whitefly", "bemisia tabaci", "thiamethoxam"],
+      "expected_source": "soybean_management_advisory.pdf"
+    },
+    {
+      "id": "SOYBEAN-02",
+      "crop": "soybean",
+      "category": "weed",
+      "query": "Which pre-emergence and early post-emergence herbicides are recommended for soybean?",
+      "expected_topics": ["diclosulam", "imazethapyr", "herbicide", "weed"],
+      "expected_source": "soybean_management_advisory.pdf"
+    },
+    {
+      "id": "SOYBEAN-03",
+      "crop": "soybean",
+      "category": "cultivation",
+      "query": "Why is the Broad Bed Furrow (BBF) or Ridge and Furrow system recommended for soybean?",
+      "expected_topics": ["broad bed furrow", "bbf", "drainage", "waterlogging", "ridge and furrow"],
+      "expected_source": "soybean_management_advisory.pdf"
+    },
+    {
+      "id": "SOYBEAN-04",
+      "crop": "soybean",
+      "category": "pest",
+      "query": "How to manage semiloopers and defoliating caterpillars in soybean fields?",
+      "expected_topics": ["semilooper", "chlorantraniliprole", "indoxacarb", "defoliator"],
+      "expected_source": "soybean_management_advisory.pdf"
+    }
+  ]
+}

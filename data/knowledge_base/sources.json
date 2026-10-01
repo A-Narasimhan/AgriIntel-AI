@@ -1,0 +1,73 @@
+{
+  "version": "1.0",
+  "description": "Authoritative agricultural document registry for AgriIntel AI knowledge base",
+  "institutions": {
+    "ICAR-NRRI": "ICAR - National Rice Research Institute, Cuttack",
+    "ICAR-CICR": "ICAR - Central Institute for Cotton Research, Nagpur",
+    "ICAR-IIMR": "ICAR - Indian Institute of Maize Research, Ludhiana",
+    "ICAR-DGR": "ICAR - Directorate of Groundnut Research, Junagadh",
+    "ICAR-IISR": "ICAR - Indian Institute of Soybean Research, Indore"
+  },
+  "sources": [
+    {
+      "source_id": "rice-nrri-package-of-practices",
+      "crop": "rice",
+      "title": "Standard Package of Practices and Disease Management for Rice",
+      "institution": "ICAR-NRRI",
+      "year": 2024,
+      "document_type": "extension_bulletin",
+      "topic": "cultivation, disease_management, irrigation",
+      "source_url": "https://icar-nrri.gov.in",
+      "filename": "rice_cultivation_and_protection.pdf",
+      "authority_level": "national_research_institute"
+    },
+    {
+      "source_id": "cotton-cicr-pest-advisory",
+      "crop": "cotton",
+      "title": "Integrated Pest and Disease Management in Cotton",
+      "institution": "ICAR-CICR",
+      "year": 2024,
+      "document_type": "technical_bulletin",
+      "topic": "pest_management, bollworm, whitefly, irrigation",
+      "source_url": "https://cicr.icar.gov.in",
+      "filename": "cotton_ipm_and_practices.pdf",
+      "authority_level": "national_research_institute"
+    },
+    {
+      "source_id": "maize-iimr-production-tech",
+      "crop": "maize",
+      "title": "Maize Cultivation and Fall Armyworm Management Advisory",
+      "institution": "ICAR-IIMR",
+      "year": 2023,
+      "document_type": "extension_bulletin",
+      "topic": "cultivation, fall_armyworm, nutrient_management",
+      "source_url": "https://iimr.icar.gov.in",
+      "filename": "maize_production_and_protection.pdf",
+      "authority_level": "national_research_institute"
+    },
+    {
+      "source_id": "groundnut-dgr-gap",
+      "crop": "groundnut",
+      "title": "Good Agricultural Practices and Disease Management in Groundnut",
+      "institution": "ICAR-DGR",
+      "year": 2023,
+      "document_type": "technical_bulletin",
+      "topic": "cultivation, tikka_disease, water_management",
+      "source_url": "https://dgr.icar.gov.in",
+      "filename": "groundnut_production_guide.pdf",
+      "authority_level": "national_research_institute"
+    },
+    {
+      "source_id": "soybean-iisr-advisory",
+      "crop": "soybean",
+      "title": "Soybean Crop Production and Integrated Weed and Pest Management",
+      "institution": "ICAR-IISR",
+      "year": 2024,
+      "document_type": "technical_bulletin",
+      "topic": "weed_management, yellow_mosaic, sowing_practice",
+      "source_url": "https://iisrindore.icar.gov.in",
+      "filename": "soybean_management_advisory.pdf",
+      "authority_level": "national_research_institute"
+    }
+  ]
+}
