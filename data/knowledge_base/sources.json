@@ -1,0 +1,122 @@
+{
+  "version": "1.0",
+  "description": "Authoritative agricultural document registry for AgriIntel AI knowledge base",
+  "institutions": {
+    "ICAR": "Indian Council of Agricultural Research, New Delhi",
+    "ICAR-NRRI": "ICAR - National Rice Research Institute, Cuttack",
+    "ICAR-CICR": "ICAR - Central Institute for Cotton Research, Nagpur",
+    "ICAR-IIMR": "ICAR - Indian Institute of Maize Research, Ludhiana",
+    "ICAR-DGR": "ICAR - Directorate of Groundnut Research, Junagadh",
+    "ICAR-IISR": "ICAR - Indian Institute of Soybean Research, Indore"
+  },
+  "sources": [
+    {
+      "source_id": "rice-icar-kharif-agro-advisories-2025",
+      "crop": "rice",
+      "title": "ICAR Kharif Agro-Advisories for Farmers 2025",
+      "institution": "ICAR",
+      "year": 2025,
+      "document_type": "extension_bulletin",
+      "topic": "cultivation, disease_management, irrigation, sowing, weed_control",
+      "source_url": "https://icar.org.in/sites/default/files/Circulars/ICAR-En-Kharif-Agro-Advisories-for-Farmers-2025.pdf",
+      "filename": "rice_production_and_protection.pdf",
+      "authority_level": "national_research_council"
+    },
+    {
+      "source_id": "cotton-icar-kharif-agro-advisories-2025",
+      "crop": "cotton",
+      "title": "ICAR Kharif Agro-Advisories for Farmers 2025",
+      "institution": "ICAR",
+      "year": 2025,
+      "document_type": "extension_bulletin",
+      "topic": "cultivation, pest_management, bollworm, whitefly, irrigation",
+      "source_url": "https://icar.org.in/sites/default/files/Circulars/ICAR-En-Kharif-Agro-Advisories-for-Farmers-2025.pdf",
+      "filename": "cotton_production_and_protection.pdf",
+      "authority_level": "national_research_council"
+    },
+    {
+      "source_id": "cotton-cicr-certified-technologies",
+      "crop": "cotton",
+      "title": "ICAR Certified Technologies of CICR",
+      "institution": "ICAR-CICR",
+      "year": 2024,
+      "document_type": "technical_bulletin",
+      "topic": "cotton_technologies, pest_management, disease_management",
+      "source_url": "https://cicr.org.in/wp-content/uploads/2026/01/CICR-Technologies.pdf",
+      "filename": "cotton_cicr_technologies.pdf",
+      "authority_level": "national_research_institute"
+    },
+    {
+      "source_id": "cotton-cicr-pbw-technology-leaflet",
+      "crop": "cotton",
+      "title": "ICAR-CICR Pink Bollworm Technology Leaflet",
+      "institution": "ICAR-CICR",
+      "year": 2023,
+      "document_type": "technical_bulletin",
+      "topic": "pink_bollworm, pest_management",
+      "source_url": "https://cicr.org.in/wp-content/uploads/2026/05/Technology-PBW-Babasaheb-Fand.pdf",
+      "filename": "cotton_pbw_management_cicr.pdf",
+      "authority_level": "national_research_institute"
+    },
+    {
+      "source_id": "maize-icar-kharif-agro-advisories-2025",
+      "crop": "maize",
+      "title": "ICAR Kharif Agro-Advisories for Farmers 2025",
+      "institution": "ICAR",
+      "year": 2025,
+      "document_type": "extension_bulletin",
+      "topic": "cultivation, fall_armyworm, nutrient_management, sowing, weed_control",
+      "source_url": "https://icar.org.in/sites/default/files/Circulars/ICAR-En-Kharif-Agro-Advisories-for-Farmers-2025.pdf",
+      "filename": "maize_production_and_protection.pdf",
+      "authority_level": "national_research_council"
+    },
+    {
+      "source_id": "groundnut-icar-kharif-agro-advisories-2025",
+      "crop": "groundnut",
+      "title": "ICAR Kharif Agro-Advisories for Farmers 2025",
+      "institution": "ICAR",
+      "year": 2025,
+      "document_type": "extension_bulletin",
+      "topic": "cultivation, tikka_disease, water_management, sowing, nutrient_management",
+      "source_url": "https://icar.org.in/sites/default/files/Circulars/ICAR-En-Kharif-Agro-Advisories-for-Farmers-2025.pdf",
+      "filename": "groundnut_production_guide.pdf",
+      "authority_level": "national_research_council"
+    },
+    {
+      "source_id": "groundnut-dgr-production-technologies-2020",
+      "crop": "groundnut",
+      "title": "Improved Crop Production Technologies for Higher and Sustained Yield of Groundnut",
+      "institution": "ICAR-DGR",
+      "year": 2020,
+      "document_type": "technical_bulletin",
+      "topic": "production_practices, soil, sowing, nutrient_management, irrigation",
+      "source_url": "https://www.icar-iigr.org.in/wp-content/uploads/2021/07/production-technlogies.pdf",
+      "filename": "groundnut_production_technologies_iigr.pdf",
+      "authority_level": "national_research_institute"
+    },
+    {
+      "source_id": "groundnut-dgr-protection-technologies-2020",
+      "crop": "groundnut",
+      "title": "Crop protection technologies generated through AICRP on Groundnut",
+      "institution": "ICAR-DGR",
+      "year": 2020,
+      "document_type": "technical_bulletin",
+      "topic": "pest_management, tikka_disease, weed_management, disease_control",
+      "source_url": "https://www.icar-iigr.org.in/wp-content/uploads/2021/07/protection-technlogies.pdf",
+      "filename": "groundnut_protection_technologies_iigr.pdf",
+      "authority_level": "national_research_institute"
+    },
+    {
+      "source_id": "soybean-icar-kharif-agro-advisories-2025",
+      "crop": "soybean",
+      "title": "ICAR Kharif Agro-Advisories for Farmers 2025",
+      "institution": "ICAR",
+      "year": 2025,
+      "document_type": "extension_bulletin",
+      "topic": "weed_management, yellow_mosaic, sowing_practice, pest_management",
+      "source_url": "https://icar.org.in/sites/default/files/Circulars/ICAR-En-Kharif-Agro-Advisories-for-Farmers-2025.pdf",
+      "filename": "soybean_management_advisory.pdf",
+      "authority_level": "national_research_council"
+    }
+  ]
+}
