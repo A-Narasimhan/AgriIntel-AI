@@ -50,10 +50,11 @@ async def generate_advisory(request: AdvisoryRequest) -> AdvisoryResponse:
 
     # 2. Retrieve agricultural evidence chunks from ChromaDB
     chunks = retrieval_service.retrieve(
-        query=request.query,
-        crop=detected_crop,
-        top_k=settings.default_top_k,
-    )
+    query=request.query,
+    crop=detected_crop,
+    top_k=settings.default_top_k,
+    intent=intent,
+)
 
     # 3. Retrieve real-time dynamic weather context
     weather_ctx = await weather_service.get_weather(request.location)

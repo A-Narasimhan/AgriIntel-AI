@@ -6,6 +6,7 @@ Supports configurable LLM providers (Gemini, OpenAI, Groq, or offline Grounded S
 without hardcoding API keys or dependencies.
 """
 
+from app.rag import chunker
 from typing import List, Optional, Tuple
 import json
 import httpx
@@ -84,6 +85,144 @@ class LLMService:
 
         return system_prompt, user_prompt
 
+   
+    @staticmethod
+    def _has_relevant_evidence(
+        query: str,
+        chunks: List[RetrievedChunk],
+    ) -> bool:
+        """Reject retrieved chunks that do not support the query's intent."""
+        if not chunks:
+            return False
+
+        query_lower = query.lower()
+
+        # Each group represents a different kind of evidence required.
+        intent_groups = {
+            "irrigation": [
+                (
+                    "irrigation",
+                    "irrigate",
+                    "water management",
+                    "water requirement",
+                    "watering",
+                ),
+                (
+                    "critical stage",
+                    "critical stages",
+                    "flowering",
+                    "boll formation",
+                    "boll development",
+                    "boll filling",
+                    "water stress",
+                    "moisture stress",
+                    "irrigation schedule",
+                ),
+            ],
+            "pest": [
+                (
+                    "pest", "insect", "bollworm", "whitefly",
+                    "aphid", "thrips",
+                ),
+                (
+                    "control", "management", "monitoring",
+                    "infestation", "treatment",
+                ),
+            ],
+            "disease": [
+                (
+                    "disease", "rot", "blight", "rust", "wilt",
+                    "mildew", "tikka",
+                ),
+                (
+                    "control", "management", "symptom",
+                    "treatment", "prevention",
+                ),
+            ],
+            "nutrient": [
+                (
+                    "fertilizer", "fertiliser", "nutrient",
+                    "urea", "npk", "dap",
+                ),
+                (
+                    "application", "deficiency", "dose",
+                    "recommendation", "management",
+                ),
+            ],
+        }
+
+        # Detect the question's intent using its wording.
+        if any(term in query_lower for term in (
+            "irrigation", "irrigate", "watering", "water requirement",
+            "drought", "water stress", "moisture stress",
+        )):
+            detected_intent = "irrigation"
+        elif any(term in query_lower for term in (
+            "pest", "insect", "bollworm", "whitefly", "aphid", "thrips",
+        )):
+            detected_intent = "pest"
+        elif any(term in query_lower for term in (
+            "disease", "rot", "blight", "rust", "wilt", "mildew", "tikka",
+        )):
+            detected_intent = "disease"
+        elif any(term in query_lower for term in (
+            "fertilizer", "fertiliser", "nutrient", "urea", "npk",
+            "dap", "deficiency",
+        )):
+            detected_intent = "nutrient"
+        else:
+            # Do not claim evidence is relevant when the intent is unknown.
+            return False
+
+        groups = intent_groups[detected_intent]
+
+        for chunk in chunks:
+            content = f"{chunk.topic or ''} {chunk.text}".lower()
+
+            # For irrigation questions, require BOTH water-management
+            # evidence and a relevant stage/stress signal in the same chunk.
+            if detected_intent == "irrigation":
+                water_terms = (
+                    "irrigation schedule",
+                    "irrigation at",
+                    "irrigate at",
+                    "irrigation during",
+                    "water should be applied",
+                    "apply irrigation",
+                    "irrigations should",
+                    "water requirement",
+                    "water stress management",
+                    "irrigation",
+                    "irrigate",
+                )
+                stage_terms = (
+                    "flowering",
+                    "boll formation",
+                    "boll development",
+                    "boll filling",
+                    "critical stage",
+                    "critical stages",
+                    "water stress",
+                    "moisture stress",
+                )
+
+                if (
+                    any(term in content for term in water_terms)
+                    and any(term in content for term in stage_terms)
+                ):
+                    return True
+
+                continue
+
+            if all(
+                any(term in content for term in group)
+                for group in groups
+            ):
+                return True
+
+        return False
+
+
     async def generate_advisory(
         self,
         query: str,
@@ -97,6 +236,16 @@ class LLMService:
         Generate grounded advisory.
         Returns (advisory_text, sources_list, is_evidence_grounded).
         """
+
+        if not self._has_relevant_evidence(query, chunks):
+            advisory = (
+                f"Reliable supporting information was not found in the curated "
+                f"knowledge base for this {crop.capitalize()} query. "
+                "No agricultural recommendation has been generated. "
+                "Please consult your local Krishi Vigyan Kendra (KVK) "
+                "or an ICAR agricultural extension officer."
+            )
+            return advisory, [], False
         system_prompt, user_prompt = self.build_grounded_prompt(
             query=query,
             crop=crop,
@@ -178,8 +327,9 @@ class LLMService:
             lines.append(f"{idx}. {summary_sentences}\n   ↳ *Citation*: {source_citation}")
 
         lines.append(
-            "\n**Safety & Grounding Notice**: All recommendations are strictly grounded in authoritative "
-            "ICAR extension publications. Do not exceed specified dosages."
+            "\nRecommendations below are excerpts from retrieved documents. "
+            "Verify that each cited passage applies to the specific crop "
+            "and question before acting on it."
         )
 
         return "\n".join(lines)

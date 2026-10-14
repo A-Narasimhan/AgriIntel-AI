@@ -8,7 +8,7 @@
       "category": "disease",
       "query": "What are the symptoms and chemical control for blast disease in rice?",
       "expected_topics": ["blast", "magnaporthe oryzae", "tricyclazole", "fungicide"],
-      "expected_source": "rice_cultivation_and_protection.pdf"
+      "expected_source": "rice_production_and_protection.pdf"
     },
     {
       "id": "RICE-02",
@@ -16,7 +16,7 @@
       "category": "irrigation",
       "query": "How should Alternate Wetting and Drying (AWD) be implemented for paddy irrigation?",
       "expected_topics": ["alternate wetting and drying", "awd", "water tube", "irrigation"],
-      "expected_source": "rice_cultivation_and_protection.pdf"
+      "expected_source": "rice_production_and_protection.pdf"
     },
     {
       "id": "RICE-03",
@@ -24,7 +24,7 @@
       "category": "cultivation",
       "query": "What is the recommended nursery area, seed rate, and seedling age for transplanting rice?",
       "expected_topics": ["nursery", "seed rate", "transplanting", "spacing"],
-      "expected_source": "rice_cultivation_and_protection.pdf"
+      "expected_source": "rice_production_and_protection.pdf"
     },
     {
       "id": "RICE-04",
@@ -32,7 +32,7 @@
       "category": "weed",
       "query": "Which pre-emergence herbicide is recommended for weed control in puddle transplanted rice?",
       "expected_topics": ["pretilachlor", "herbicide", "weed", "cono-weeding"],
-      "expected_source": "rice_cultivation_and_protection.pdf"
+      "expected_source": "rice_production_and_protection.pdf"
     },
     {
       "id": "COTTON-01",
@@ -40,7 +40,7 @@
       "category": "pest",
       "query": "What is the Economic Threshold Level (ETL) and management for Pink Bollworm in cotton?",
       "expected_topics": ["pink bollworm", "etl", "pheromone trap", "chlorantraniliprole", "spinosad"],
-      "expected_source": "cotton_ipm_and_practices.pdf"
+      "expected_source": "cotton_production_and_protection.pdf"
     },
     {
       "id": "COTTON-02",
@@ -48,7 +48,7 @@
       "category": "disease",
       "query": "How does Cotton Leaf Curl Virus spread and what are the vector control measures?",
       "expected_topics": ["cotton leaf curl virus", "whitefly", "bemisia tabaci", "vector"],
-      "expected_source": "cotton_ipm_and_practices.pdf"
+      "expected_source": "cotton_production_and_protection.pdf"
     },
     {
       "id": "COTTON-03",
@@ -56,7 +56,7 @@
       "category": "irrigation",
       "query": "What are the critical stages for irrigation in Bt cotton under water-limited conditions?",
       "expected_topics": ["square initiation", "flowering", "boll development", "drip irrigation"],
-      "expected_source": "cotton_ipm_and_practices.pdf"
+      "expected_source": "cotton_production_and_protection.pdf"
     },
     {
       "id": "COTTON-04",
@@ -64,7 +64,7 @@
       "category": "cultivation",
       "query": "What is the recommended spacing for hybrid cotton and how can square shedding be prevented?",
       "expected_topics": ["spacing", "naa", "planofix", "square drop"],
-      "expected_source": "cotton_ipm_and_practices.pdf"
+      "expected_source": "cotton_production_and_protection.pdf"
     },
     {
       "id": "MAIZE-01",

@@ -58,12 +58,32 @@ class IngestionService:
         """
         Extract text from a single agricultural PDF page-by-page, chunk it with provenance,
         embed, and index into ChromaDB.
+
+        If the source registry marks this document as ``requires_ocr: true``, indexing is
+        skipped and a warning is printed.  The PDF file is never modified or deleted.
         """
         if not pdf_path.exists():
             raise FileNotFoundError(f"PDF file not found: {pdf_path}")
 
         normalized_crop = normalize_crop_name(crop) or "general"
         source_meta = self._get_source_metadata(normalized_crop, pdf_path.name)
+
+        # Fix 2: Skip scanned-image PDFs that require OCR before text can be extracted.
+        # Silently extracting zero chunks from a raster PDF would pollute retrieval metrics
+        # with a false zero-hit result. Instead we surface the problem explicitly.
+        if source_meta.get("requires_ocr"):
+            print(
+                f"[SKIP] {pdf_path.name} ({normalized_crop}): requires OCR before indexing. "
+                f"ocr_status={source_meta.get('ocr_status', 'unknown')}. "
+                "Place a text-layer PDF or run OCR and re-ingest."
+            )
+            return {
+                "file": pdf_path.name,
+                "crop": normalized_crop,
+                "pages": 0,
+                "chunks_indexed": 0,
+                "status": "skipped_requires_ocr",
+            }
 
         doc = fitz.open(str(pdf_path))
         total_pages = len(doc)
@@ -83,12 +103,15 @@ class IngestionService:
                 "topic": source_meta.get("topic", "crop_management"),
             }
 
+            # Fix 1: pass filter_crop=True so is_chunk_relevant_to_crop() rejects chunks
+            # that discuss other supported crops without mentioning the target crop.
             page_chunks = chunk_page_text(
                 text=page_text,
                 page_number=page_num,
                 base_metadata=base_meta,
                 chunk_size=settings.chunk_size,
                 chunk_overlap=settings.chunk_overlap,
+                filter_crop=True,
             )
             all_chunks.extend(page_chunks)
 

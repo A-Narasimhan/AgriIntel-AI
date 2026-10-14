@@ -2,7 +2,7 @@
 Unit tests for text chunker and page boundary preservation.
 """
 
-from app.rag.chunker import chunk_page_text, clean_text
+from app.rag.chunker import chunk_page_text, clean_text, is_chunk_relevant_to_crop
 
 
 def test_clean_text_removes_excessive_whitespace():
@@ -43,3 +43,43 @@ def test_chunk_page_text_filters_short_noise():
         min_chunk_length=40,
     )
     assert len(chunks) == 0
+
+
+def test_chunk_page_text_filters_cross_crop_contamination():
+    # A chunk mentioning Maize Fall Armyworm should be rejected if the target crop is groundnut
+    faw_maize_text = (
+        "Fall army worm in maize: Summer ploughing, collection & destruction of egg masses, "
+        "installation of pheromone traps (S. frugiperda) @ 4/acre. Sowing of maize border crop."
+    )
+    rejected_chunks = chunk_page_text(
+        text=faw_maize_text,
+        page_number=2,
+        base_metadata={"crop": "groundnut", "source": "groundnut_guide.pdf"},
+        filter_crop=True,
+    )
+    assert len(rejected_chunks) == 0
+
+    # A chunk mentioning groundnut should be retained
+    groundnut_text = (
+        "Groundnut cultivation practices: Farmers are advised to take up summer ploughing and select "
+        "high yielding groundnut varieties like TCGS 1694. Suitable time for sowing is July."
+    )
+    accepted_chunks = chunk_page_text(
+        text=groundnut_text,
+        page_number=2,
+        base_metadata={"crop": "groundnut", "source": "groundnut_guide.pdf"},
+        filter_crop=True,
+    )
+    assert len(accepted_chunks) == 1
+    assert accepted_chunks[0]["metadata"]["crop"] == "groundnut"
+
+
+def test_is_chunk_relevant_to_crop():
+    # Valid crop mention
+    assert is_chunk_relevant_to_crop("Apply fertilizer to cotton field.", "cotton") is True
+    # General guideline without any other crop mention
+    assert is_chunk_relevant_to_crop("Deep ploughing and field sanitation are recommended.", "groundnut") is True
+    # Contaminated: mentions maize and not groundnut
+    assert is_chunk_relevant_to_crop("Control fall armyworm in maize crops.", "groundnut") is False
+    # Cross-mention: mentions both groundnut and redgram/maize border
+    assert is_chunk_relevant_to_crop("Intercropping groundnut with redgram or maize border crop.", "groundnut") is True

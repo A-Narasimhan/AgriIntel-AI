@@ -42,7 +42,9 @@ def build_knowledge_base():
         print(f"Current vector count in ChromaDB: {vector_store.count()}")
         return
 
-    print("\nStarting ingestion and embedding generation...")
+    print("\nResetting vector store to ensure clean ingestion without stale or contaminated chunks...")
+    vector_store.clear()
+    print("Starting ingestion and embedding generation...")
     result = ingestion_service.ingest_all_crops()
 
     print("\nIngestion Summary:")

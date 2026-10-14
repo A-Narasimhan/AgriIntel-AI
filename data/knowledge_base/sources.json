@@ -56,7 +56,11 @@
       "topic": "pink_bollworm, pest_management",
       "source_url": "https://cicr.org.in/wp-content/uploads/2026/05/Technology-PBW-Babasaheb-Fand.pdf",
       "filename": "cotton_pbw_management_cicr.pdf",
-      "authority_level": "national_research_institute"
+      "authority_level": "national_research_institute",
+      "requires_ocr": true,
+      "is_scanned": true,
+      "ocr_status": "pending",
+      "notes": "Scanned raster image leaflet (OKEN Scanner); requires OCR before text extraction and vector indexing."
     },
     {
       "source_id": "maize-icar-kharif-agro-advisories-2025",
