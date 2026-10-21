@@ -87,6 +87,7 @@ class RetrievalService:
         Retrieve crop-specific evidence, optionally filtered by intent.
         """
         k = top_k if top_k is not None else settings.default_top_k
+        candidate_k = max(k, 10)
         normalized_crop = normalize_crop_name(crop)
 
         query_vector = self.embedding.embed_query(query)
@@ -97,14 +98,14 @@ class RetrievalService:
         results = self.vector_store.search(
             query_embedding=query_vector,
             crop=normalized_crop,
-            top_k=k,
+            top_k=candidate_k,
         )
 
         return [
             chunk
             for chunk in results
             if self._matches_intent(chunk, intent)
-        ]
+        ][:k]
 
 
 retrieval_service = RetrievalService()

@@ -17,6 +17,19 @@ from app.rag.vector_store import vector_store
 from app.services.embedding_service import embedding_service
 
 
+def normalize_pdf_text(text: str) -> str:
+    """Expand PDF glyph variants for common ligatures and beta symbol encoding."""
+    replacements = {
+        "\u03d0": "f",
+        "\ufb00": "ff",
+        "\ufb01": "fi",
+        "\ufb02": "fl",
+        "\ufb03": "ffi",
+        "\ufb04": "ffl",
+    }
+    return text.translate(str.maketrans(replacements))
+
+
 class IngestionService:
     """Handles parsing agricultural PDFs, generating embeddings, and storing in ChromaDB."""
 
@@ -92,7 +105,7 @@ class IngestionService:
         for page_idx in range(total_pages):
             page = doc[page_idx]
             page_num = page_idx + 1  # 1-indexed page number
-            page_text = page.get_text()
+            page_text = normalize_pdf_text(page.get_text())
 
             base_meta = {
                 "crop": normalized_crop,

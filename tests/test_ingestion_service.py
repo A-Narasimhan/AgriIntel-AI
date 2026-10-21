@@ -11,12 +11,12 @@ Fix 2 -- requires_ocr guard:
 """
 
 from pathlib import Path
-from unittest.mock import patch
+from unittest.mock import MagicMock, patch
 import json
 import pytest
 import pymupdf as fitz
 
-from app.services.ingestion_service import IngestionService
+from app.services.ingestion_service import IngestionService, normalize_pdf_text
 
 
 # ---------------------------------------------------------------------------
@@ -43,6 +43,35 @@ def _make_pdf(dest_dir: Path, filename: str, text: str = "content") -> Path:
     doc.save(str(pdf_path))
     doc.close()
     return pdf_path
+
+
+def test_normalize_pdf_text_expands_specified_characters():
+    assert normalize_pdf_text("\u03d0 \ufb00 \ufb01 \ufb02 \ufb03 \ufb04") == (
+        "f ff fi fl ffi ffl"
+    )
+
+
+def test_normalize_pdf_text_preserves_ordinary_greek_characters():
+    greek_text = "\u03b1\u03b2\u03b3\u03bc\u03c0\u03a9"
+    assert normalize_pdf_text(greek_text) == greek_text
+
+
+def test_ingest_pdf_normalizes_extracted_text_before_chunking(tmp_path):
+    svc = _make_service([], tmp_path)
+    pdf_path = tmp_path / "normalization_test.pdf"
+    pdf_path.touch()
+
+    page = MagicMock()
+    page.get_text.return_value = "Cotton \ufb01ber \u03d0"
+    doc = MagicMock()
+    doc.__len__.return_value = 1
+    doc.__getitem__.return_value = page
+
+    with patch("app.services.ingestion_service.fitz.open", return_value=doc), \
+         patch("app.services.ingestion_service.chunk_page_text", return_value=[]) as mock_chunk:
+        svc.ingest_pdf(pdf_path, "cotton")
+
+    assert mock_chunk.call_args.kwargs["text"] == "Cotton fiber f"
 
 
 # ---------------------------------------------------------------------------
