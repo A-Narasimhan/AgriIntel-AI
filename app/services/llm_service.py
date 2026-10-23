@@ -6,7 +6,6 @@ Supports configurable LLM providers (Gemini, OpenAI, Groq, or offline Grounded S
 without hardcoding API keys or dependencies.
 """
 
-from app.rag import chunker
 from typing import List, Optional, Tuple
 import json
 import httpx
@@ -90,6 +89,7 @@ class LLMService:
     def _has_relevant_evidence(
         query: str,
         chunks: List[RetrievedChunk],
+        intent: Optional[str] = None,
     ) -> bool:
         """Reject retrieved chunks that do not support the query's intent."""
         if not chunks:
@@ -106,6 +106,9 @@ class LLMService:
                     "water management",
                     "water requirement",
                     "watering",
+                    "water stress",
+                    "submergence",
+                    "soil moisture",
                 ),
                 (
                     "critical stage",
@@ -117,62 +120,177 @@ class LLMService:
                     "water stress",
                     "moisture stress",
                     "irrigation schedule",
+                    "schedule",
+                    "interval",
+                    "tillering",
+                    "panicle",
+                    "booting",
+                    "tasseling",
+                    "silking",
+                    "pegging",
+                    "pod formation",
+                    "pod development",
+                    "grain filling",
+                    "seedling",
+                    "vegetative",
+                    "dry spell",
+                    "drip",
+                    "sprinkler",
+                    "water depth",
+                    "ponding",
+                    "saturation",
+                    "field capacity",
+                    "frequency",
                 ),
             ],
             "pest": [
                 (
-                    "pest", "insect", "bollworm", "whitefly",
-                    "aphid", "thrips",
+                    "pest", "pests", "insect", "insects", "bollworm", "whitefly",
+                    "aphid", "thrips", "borer", "jassid", "armyworm", "caterpillar",
+                    "planthopper", "bug", "mite", "weevil", "beetle", "hopper",
+                    "larva", "larvae", "grub", "stem borer", "leafhopper",
                 ),
                 (
-                    "control", "management", "monitoring",
-                    "infestation", "treatment",
+                    "control", "management", "monitoring", "infestation",
+                    "treatment", "spray", "trap", "etl", "threshold",
+                    "pheromone", "insecticide", "neem",
                 ),
             ],
             "disease": [
                 (
-                    "disease", "rot", "blight", "rust", "wilt",
-                    "mildew", "tikka",
+                    "disease", "diseases", "rot", "blight", "rust", "wilt",
+                    "mildew", "tikka", "blast", "leaf spot", "brown spot",
+                    "angular spot", "spots on leaves", "leaf curl", "mosaic",
+                    "fungal", "fungus", "bacterial", "pathogen", "cercospora",
+                    "anthracnose", "smut", "damping off",
                 ),
                 (
-                    "control", "management", "symptom",
-                    "treatment", "prevention",
+                    "control", "management", "symptom", "symptoms",
+                    "treatment", "prevention", "spray", "fungicide",
+                    "bactericide", "seed treatment",
                 ),
             ],
-            "nutrient": [
+            "nutrient_management": [
                 (
-                    "fertilizer", "fertiliser", "nutrient",
-                    "urea", "npk", "dap",
+                    "fertilizer", "fertiliser", "nutrient", "nutrients",
+                    "urea", "npk", "dap", "potash", "nitrogen",
+                    "phosphorus", "potassium", "zinc", "compost",
+                    "manure", "deficiency", "micronutrient", "boron",
                 ),
                 (
                     "application", "deficiency", "dose",
-                    "recommendation", "management",
+                    "recommendation", "management", "apply",
+                    "schedule", "basal", "top dressing", "kg/ha", "kg / ha",
+                    "split",
+                ),
+            ],
+            "weed": [
+                (
+                    "weed", "weeds", "weeding", "herbicide", "weedicide",
+                    "weed management", "broadleaf",
+                ),
+                (
+                    "control", "management", "application", "spray",
+                    "pre-emergence", "post-emergence", "hoeing",
+                    "interculture", "treatment", "dose", "manual",
+                    "hand weeding", "kg/ha", "kg / ha",
+                ),
+            ],
+            "cultivation": [
+                (
+                    "sowing", "sow", "seed rate", "spacing", "transplanting",
+                    "nursery", "land preparation", "plant population",
+                    "germination", "planting", "seedbed", "tillage", "ploughing",
+                    "row spacing", "seed treatment", "recommended variety",
+                    "recommended varieties", "hybrid variety", "cultivation",
+                ),
+                (
+                    "cm", "kg/ha", "kg / ha", "spacing", "seed", "row",
+                    "method", "depth", "recommended", "optimum",
+                    "rate", "preparation", "ploughing", "tillage",
+                    "seedbed", "population", "duration", "plant",
+                ),
+            ],
+            "harvesting": [
+                (
+                    "harvest", "harvesting", "maturity", "ripening",
+                    "picking", "storage", "post-harvest", "threshing", "thresher",
+                ),
+                (
+                    "stage", "moisture", "signs", "time", "optimum",
+                    "post-harvest", "drying", "clean", "thresher",
+                    "pod", "boll", "grain", "loss", "precaution", "safe storage",
+                ),
+            ],
+            "weather": [
+                (
+                    "rainfall", "rain", "temperature", "weather",
+                    "forecast", "heat wave", "frost", "drought",
+                    "humidity", "monsoon", "dry spell", "unseasonal",
+                ),
+                (
+                    "advisory", "precaution", "delay", "postpone",
+                    "protect", "soil moisture", "drainage", "waterlogging",
+                    "irrigate", "unseasonal", "shelter", "contingency",
+                    "avoid spraying", "lodging",
                 ),
             ],
         }
 
-        # Detect the question's intent using its wording.
-        if any(term in query_lower for term in (
-            "irrigation", "irrigate", "watering", "water requirement",
-            "drought", "water stress", "moisture stress",
-        )):
-            detected_intent = "irrigation"
-        elif any(term in query_lower for term in (
-            "pest", "insect", "bollworm", "whitefly", "aphid", "thrips",
-        )):
-            detected_intent = "pest"
-        elif any(term in query_lower for term in (
-            "disease", "rot", "blight", "rust", "wilt", "mildew", "tikka",
-        )):
-            detected_intent = "disease"
-        elif any(term in query_lower for term in (
-            "fertilizer", "fertiliser", "nutrient", "urea", "npk",
-            "dap", "deficiency",
-        )):
-            detected_intent = "nutrient"
-        else:
-            # Do not claim evidence is relevant when the intent is unknown.
-            return False
+        # Resolve intent from parameter or fallback to query keywords.
+        detected_intent: Optional[str] = None
+        if intent:
+            clean_intent = intent.strip().lower()
+            if clean_intent not in ("", "general", "none"):
+                if clean_intent == "nutrient":
+                    detected_intent = "nutrient_management"
+                elif clean_intent in intent_groups:
+                    detected_intent = clean_intent
+
+        if not detected_intent:
+            if any(term in query_lower for term in (
+                "irrigation", "irrigate", "watering", "water requirement",
+                "drought", "water stress", "moisture stress",
+            )):
+                detected_intent = "irrigation"
+            elif any(term in query_lower for term in (
+                "pest", "pests", "insect", "insects", "bollworm", "whitefly", "aphid", "thrips",
+                "borer", "jassid", "armyworm", "caterpillar", "planthopper",
+            )):
+                detected_intent = "pest"
+            elif any(term in query_lower for term in (
+                "disease", "diseases", "rot", "blight", "rust", "wilt", "mildew", "tikka",
+                "blast", "leaf curl", "leaf spot",
+            )):
+                detected_intent = "disease"
+            elif any(term in query_lower for term in (
+                "fertilizer", "fertiliser", "nutrient", "urea", "npk",
+                "dap", "potash", "deficiency", "compost", "manure",
+            )):
+                detected_intent = "nutrient_management"
+            elif any(term in query_lower for term in (
+                "weed", "weeds", "weeding", "herbicide", "weedicide",
+            )):
+                detected_intent = "weed"
+            elif any(term in query_lower for term in (
+                "sow", "sowing", "seed rate", "spacing", "transplanting",
+                "nursery", "variety", "varieties", "land prep", "cultivation",
+                "cultivate", "planting",
+            )):
+                detected_intent = "cultivation"
+            elif any(term in query_lower for term in (
+                "harvest", "harvesting", "yield", "maturity", "storage",
+                "ripening", "picking",
+            )):
+                detected_intent = "harvesting"
+            elif any(term in query_lower for term in (
+                "rainfall", "rain", "temperature", "frost", "weather", "heat wave",
+                "monsoon",
+            )):
+                detected_intent = "weather"
+            else:
+                # Do not claim evidence is relevant when the intent is unknown.
+                return False
 
         groups = intent_groups[detected_intent]
 
@@ -180,7 +298,7 @@ class LLMService:
             content = f"{chunk.topic or ''} {chunk.text}".lower()
 
             # For irrigation questions, require BOTH water-management
-            # evidence and a relevant stage/stress signal in the same chunk.
+            # evidence and a relevant stage/stress/scheduling signal in the same chunk.
             if detected_intent == "irrigation":
                 water_terms = (
                     "irrigation schedule",
@@ -194,6 +312,12 @@ class LLMService:
                     "water stress management",
                     "irrigation",
                     "irrigate",
+                    "watering",
+                    "water management",
+                    "water stress",
+                    "water application",
+                    "submergence",
+                    "soil moisture",
                 )
                 stage_terms = (
                     "flowering",
@@ -204,6 +328,28 @@ class LLMService:
                     "critical stages",
                     "water stress",
                     "moisture stress",
+                    "irrigation schedule",
+                    "schedule",
+                    "interval",
+                    "tillering",
+                    "panicle",
+                    "booting",
+                    "tasseling",
+                    "silking",
+                    "pegging",
+                    "pod formation",
+                    "pod development",
+                    "grain filling",
+                    "seedling",
+                    "vegetative",
+                    "dry spell",
+                    "drip",
+                    "sprinkler",
+                    "water depth",
+                    "ponding",
+                    "saturation",
+                    "field capacity",
+                    "frequency",
                 )
 
                 if (
@@ -231,13 +377,20 @@ class LLMService:
         weather: Optional[WeatherContext],
         chunks: List[RetrievedChunk],
         crop_stage: Optional[str] = None,
+        intent: Optional[str] = None,
     ) -> Tuple[str, List[SourceReference], bool]:
         """
         Generate grounded advisory.
         Returns (advisory_text, sources_list, is_evidence_grounded).
         """
 
-        if not self._has_relevant_evidence(query, chunks):
+        # Filter chunks to only those that genuinely provide relevant evidence
+        relevant_chunks = [
+            c for c in chunks
+            if self._has_relevant_evidence(query, [c], intent=intent)
+        ]
+
+        if not relevant_chunks:
             advisory = (
                 f"Reliable supporting information was not found in the curated "
                 f"knowledge base for this {crop.capitalize()} query. "
@@ -246,18 +399,19 @@ class LLMService:
                 "or an ICAR agricultural extension officer."
             )
             return advisory, [], False
+
         system_prompt, user_prompt = self.build_grounded_prompt(
             query=query,
             crop=crop,
             location=location,
             weather=weather,
-            chunks=chunks,
+            chunks=relevant_chunks,
             crop_stage=crop_stage,
         )
 
-        # Collect source references
+        # Collect source references strictly for evidence actually used
         sources: List[SourceReference] = []
-        for c in chunks:
+        for c in relevant_chunks:
             sources.append(
                 SourceReference(
                     source_id=c.source,
@@ -269,14 +423,6 @@ class LLMService:
                 )
             )
 
-        if not chunks:
-            advisory = (
-                f"No verified agricultural documents covering '{query}' for {crop.capitalize()} "
-                "were found in the curated knowledge base. To prevent ungrounded advice, no recommendation "
-                "is generated. Please consult your local Krishi Vigyan Kendra (KVK) or ICAR extension officer."
-            )
-            return advisory, [], False
-
         # Route to appropriate provider
         if self.provider == "gemini" and settings.gemini_api_key:
             advisory = await self._call_gemini(system_prompt, user_prompt)
@@ -285,8 +431,15 @@ class LLMService:
         elif self.provider == "groq" and settings.groq_api_key:
             advisory = await self._call_groq(system_prompt, user_prompt)
         else:
-            # Deterministic, rule-grounded synthesis directly using retrieved chunks
-            advisory = self._generate_grounded_synthesis(query, crop, location, weather, chunks)
+            # Deterministic, rule-grounded synthesis directly using relevant retrieved chunks
+            advisory = self._generate_grounded_synthesis(
+                query=query,
+                crop=crop,
+                location=location,
+                weather=weather,
+                chunks=relevant_chunks,
+                crop_stage=crop_stage,
+            )
 
         return advisory, sources, True
 
@@ -297,6 +450,7 @@ class LLMService:
         location: Optional[str],
         weather: Optional[WeatherContext],
         chunks: List[RetrievedChunk],
+        crop_stage: Optional[str] = None,
     ) -> str:
         """
         Deterministic, offline grounded synthesis.
@@ -307,6 +461,8 @@ class LLMService:
             f"### Agricultural Advisory for {crop.capitalize()}",
             f"**Query**: {query}",
         ]
+        if crop_stage:
+            lines.append(f"**Observed Crop Growth Stage**: {crop_stage.capitalize()}")
 
         if weather and weather.is_available:
             lines.append(

@@ -2,8 +2,12 @@
 Integration tests for the Advisory and System API endpoints.
 """
 
+from unittest.mock import patch, AsyncMock
+import pytest
 from fastapi.testclient import TestClient
+
 from app.main import app
+from app.core.schemas import RetrievedChunk, WeatherContext
 
 client = TestClient(app)
 
@@ -65,3 +69,345 @@ def test_interactions_endpoint():
     assert "total" in data
     assert "interactions" in data
     assert isinstance(data["interactions"], list)
+
+
+@pytest.fixture
+def mock_weather():
+    return WeatherContext(
+        location="Indore",
+        temperature=28.0,
+        humidity=60.0,
+        precipitation=0.0,
+        wind_speed=10.0,
+        condition="Clear sky",
+        forecast_summary="3-Day Outlook: Dry conditions expected.",
+        is_available=True,
+    )
+
+
+def test_advisory_pipeline_soybean_cultivation_with_relevant_evidence(mock_weather):
+    relevant_chunk = RetrievedChunk(
+        text="Recommended seed rate for soybean is 65-75 kg/ha with row-to-row spacing of 45 cm for optimum plant population.",
+        source="soybean_cultivation_guide.pdf",
+        title="Soybean Cultivation Guide",
+        crop="soybean",
+        page=12,
+        topic="cultivation",
+    )
+    payload = {
+        "query": "What is the recommended seed rate and spacing for soybean?",
+        "crop": "soybean",
+        "location": "Indore",
+    }
+
+    with patch("app.api.advisory.weather_service.get_weather", AsyncMock(return_value=mock_weather)), \
+         patch("app.api.advisory.retrieval_service.retrieve", return_value=[relevant_chunk]):
+        response = client.post("/advisory", json=payload)
+
+    assert response.status_code == 200
+    data = response.json()
+    assert data["crop"] == "soybean"
+    assert data["intent"] == "cultivation"
+    assert data["evidence_grounded"] is True
+    assert len(data["sources"]) == 1
+    assert data["sources"][0]["source_id"] == "soybean_cultivation_guide.pdf"
+    assert "Soybean Cultivation Guide" in data["advisory"]
+
+
+def test_advisory_pipeline_weed_management_with_relevant_evidence(mock_weather):
+    relevant_chunk = RetrievedChunk(
+        text="Apply atrazine at 1.0 kg/ha as pre-emergence herbicide spray for effective weed management in maize.",
+        source="maize_production.pdf",
+        title="Maize Production Guide",
+        crop="maize",
+        page=7,
+        topic="weed",
+    )
+    payload = {
+        "query": "How to control weeds in maize field?",
+        "crop": "maize",
+        "location": "Warangal",
+    }
+
+    with patch("app.api.advisory.weather_service.get_weather", AsyncMock(return_value=mock_weather)), \
+         patch("app.api.advisory.retrieval_service.retrieve", return_value=[relevant_chunk]):
+        response = client.post("/advisory", json=payload)
+
+    assert response.status_code == 200
+    data = response.json()
+    assert data["crop"] == "maize"
+    assert data["intent"] == "weed"
+    assert data["evidence_grounded"] is True
+    assert len(data["sources"]) == 1
+    assert data["sources"][0]["source_id"] == "maize_production.pdf"
+    assert "Maize Production Guide" in data["advisory"]
+
+
+def test_advisory_pipeline_nutrient_management_with_relevant_evidence(mock_weather):
+    relevant_chunk = RetrievedChunk(
+        text="Recommended fertilizer application dose for rice is 120 kg nitrogen, 60 kg P2O5 as DAP, and 40 kg potash per hectare.",
+        source="rice_manual.pdf",
+        title="Rice Production Manual",
+        crop="rice",
+        page=15,
+        topic="nutrient_management",
+    )
+    payload = {
+        "query": "What is the recommended urea and DAP fertilizer dose for rice?",
+        "crop": "rice",
+    }
+
+    with patch("app.api.advisory.weather_service.get_weather", AsyncMock(return_value=mock_weather)), \
+         patch("app.api.advisory.retrieval_service.retrieve", return_value=[relevant_chunk]):
+        response = client.post("/advisory", json=payload)
+
+    assert response.status_code == 200
+    data = response.json()
+    assert data["crop"] == "rice"
+    assert data["intent"] == "nutrient_management"
+    assert data["evidence_grounded"] is True
+    assert len(data["sources"]) == 1
+    assert data["sources"][0]["source_id"] == "rice_manual.pdf"
+    assert "Rice Production Manual" in data["advisory"]
+
+
+def test_advisory_pipeline_irrelevant_evidence_rejected(mock_weather):
+    irrelevant_chunk = RetrievedChunk(
+        text="Apply chlorantraniliprole 18.5 SC at 150 ml/ha to manage bollworm larvae in cotton fields.",
+        source="cotton_pest.pdf",
+        title="Cotton Pest Management",
+        crop="cotton",
+        page=20,
+        topic="pest",
+    )
+    payload = {
+        "query": "What is the recommended sowing time and spacing for cotton?",
+        "crop": "cotton",
+    }
+
+    with patch("app.api.advisory.weather_service.get_weather", AsyncMock(return_value=mock_weather)), \
+         patch("app.api.advisory.retrieval_service.retrieve", return_value=[irrelevant_chunk]):
+        response = client.post("/advisory", json=payload)
+
+    assert response.status_code == 200
+    data = response.json()
+    assert data["crop"] == "cotton"
+    assert data["intent"] == "cultivation"
+    assert data["evidence_grounded"] is False
+    assert len(data["sources"]) == 0
+    assert "Reliable supporting information was not found" in data["advisory"]
+
+
+def test_advisory_pipeline_crop_stage_context_in_synthesis(mock_weather):
+    relevant_chunk = RetrievedChunk(
+        text="In soybean, vegetative stage requires weed-free conditions and optimum spacing of 45 cm for plant development.",
+        source="soybean_cultivation_guide.pdf",
+        title="Soybean Cultivation Guide",
+        crop="soybean",
+        page=14,
+        topic="cultivation",
+    )
+    payload = {
+        "query": "What is the recommended spacing for soybean?",
+        "crop": "soybean",
+        "crop_stage": "vegetative",
+        "location": "Indore",
+    }
+
+    with patch("app.api.advisory.weather_service.get_weather", AsyncMock(return_value=mock_weather)), \
+         patch("app.api.advisory.retrieval_service.retrieve", return_value=[relevant_chunk]):
+        response = client.post("/advisory", json=payload)
+
+    assert response.status_code == 200
+    data = response.json()
+    assert data["crop_stage"] == "vegetative"
+    assert data["evidence_grounded"] is True
+    assert "Observed Crop Growth Stage" in data["advisory"]
+    assert "Vegetative" in data["advisory"]
+
+
+def test_advisory_pipeline_provenance_only_relevant_sources_cited(mock_weather):
+    relevant_chunk = RetrievedChunk(
+        text="Recommended seed rate for soybean is 65-75 kg/ha with row-to-row spacing of 45 cm for optimum plant population.",
+        source="soybean_cultivation_guide.pdf",
+        title="Soybean Cultivation Guide",
+        crop="soybean",
+        page=12,
+        topic="cultivation",
+    )
+    irrelevant_chunk = RetrievedChunk(
+        text="Apply chlorantraniliprole 18.5 SC at 150 ml/ha to manage bollworm larvae in cotton fields.",
+        source="cotton_pest.pdf",
+        title="Cotton Pest Management",
+        crop="soybean",
+        page=20,
+        topic="pest",
+    )
+    payload = {
+        "query": "What is the recommended seed rate and spacing for soybean?",
+        "crop": "soybean",
+        "location": "Indore",
+    }
+
+    with patch("app.api.advisory.weather_service.get_weather", AsyncMock(return_value=mock_weather)), \
+         patch("app.api.advisory.retrieval_service.retrieve", return_value=[relevant_chunk, irrelevant_chunk]):
+        response = client.post("/advisory", json=payload)
+
+    assert response.status_code == 200
+    data = response.json()
+    assert data["evidence_grounded"] is True
+    # Provenance: only the relevant source actually used should be returned
+    assert len(data["sources"]) == 1
+    assert data["sources"][0]["source_id"] == "soybean_cultivation_guide.pdf"
+    assert "Cotton Pest Management" not in data["advisory"]
+    assert "chlorantraniliprole" not in data["advisory"]
+
+
+def test_advisory_pipeline_negative_pest_infestation_rejected_for_weed_query(mock_weather):
+    # Misleading chunk mentioning "infestation" and "control" for an insect pest, not a weed
+    pest_chunk = RetrievedChunk(
+        text="Fall armyworm causes severe insect infestation in maize. Spray chlorantraniliprole for chemical control.",
+        source="maize_pest.pdf",
+        title="Maize Pest Management",
+        crop="maize",
+        page=5,
+        topic="pest",
+    )
+    payload = {
+        "query": "How to control weeds in maize field?",
+        "crop": "maize",
+        "location": "Warangal",
+    }
+
+    with patch("app.api.advisory.weather_service.get_weather", AsyncMock(return_value=mock_weather)), \
+         patch("app.api.advisory.retrieval_service.retrieve", return_value=[pest_chunk]):
+        response = client.post("/advisory", json=payload)
+
+    assert response.status_code == 200
+    data = response.json()
+    assert data["intent"] == "weed"
+    assert data["evidence_grounded"] is False
+    assert len(data["sources"]) == 0
+    assert "Reliable supporting information was not found" in data["advisory"]
+
+
+def test_advisory_pipeline_negative_spotted_bollworm_rejected_for_disease_query(mock_weather):
+    # Insect pest chunk containing "spotted" should not be treated as a disease "spot"
+    pest_chunk = RetrievedChunk(
+        text="Spotted bollworm larvae bore into cotton bolls. Apply indoxacarb spray for insect control.",
+        source="cotton_insects.pdf",
+        title="Cotton Insect Guide",
+        crop="cotton",
+        page=11,
+        topic="pest",
+    )
+    payload = {
+        "query": "How to control leaf blight fungal disease in cotton?",
+        "crop": "cotton",
+    }
+
+    with patch("app.api.advisory.weather_service.get_weather", AsyncMock(return_value=mock_weather)), \
+         patch("app.api.advisory.retrieval_service.retrieve", return_value=[pest_chunk]):
+        response = client.post("/advisory", json=payload)
+
+    assert response.status_code == 200
+    data = response.json()
+    assert data["intent"] == "disease"
+    assert data["evidence_grounded"] is False
+    assert len(data["sources"]) == 0
+    assert "Reliable supporting information was not found" in data["advisory"]
+
+
+def test_advisory_pipeline_negative_yield_loss_rejected_for_harvesting_query(mock_weather):
+    # Pest chunk mentioning yield loss should not be accepted as harvesting evidence
+    pest_chunk = RetrievedChunk(
+        text="Pink bollworm infestation causes 40% yield loss in cotton at boll development stage. Spray profenofos.",
+        source="cotton_pests.pdf",
+        title="Cotton Pest Guide",
+        crop="cotton",
+        page=8,
+        topic="pest",
+    )
+    payload = {
+        "query": "When should I harvest cotton crop?",
+        "crop": "cotton",
+    }
+
+    with patch("app.api.advisory.weather_service.get_weather", AsyncMock(return_value=mock_weather)), \
+         patch("app.api.advisory.retrieval_service.retrieve", return_value=[pest_chunk]):
+        response = client.post("/advisory", json=payload)
+
+    assert response.status_code == 200
+    data = response.json()
+    assert data["intent"] == "harvesting"
+    assert data["evidence_grounded"] is False
+    assert len(data["sources"]) == 0
+    assert "Reliable supporting information was not found" in data["advisory"]
+
+
+def test_advisory_pipeline_weather_intent_with_relevant_evidence(mock_weather):
+    weather_chunk = RetrievedChunk(
+        text="In case of heavy rainfall forecast, postpone chemical spray and ensure proper field drainage to avoid waterlogging.",
+        source="weather_advisory_guide.pdf",
+        title="Agricultural Weather Advisory Guide",
+        crop="cotton",
+        page=3,
+        topic="weather",
+    )
+    payload = {
+        "query": "What weather precautions should be taken for cotton during rainfall?",
+        "crop": "cotton",
+        "location": "Warangal",
+    }
+
+    with patch("app.api.advisory.weather_service.get_weather", AsyncMock(return_value=mock_weather)), \
+         patch("app.api.advisory.retrieval_service.retrieve", return_value=[weather_chunk]):
+        response = client.post("/advisory", json=payload)
+
+    assert response.status_code == 200
+    data = response.json()
+    assert data["intent"] == "weather"
+    assert data["evidence_grounded"] is True
+    assert len(data["sources"]) == 1
+    assert data["sources"][0]["source_id"] == "weather_advisory_guide.pdf"
+
+
+def test_intent_normalization_and_fallback_behavior():
+    from app.services.llm_service import LLMService
+
+    fertilizer_chunk = RetrievedChunk(
+        text="Apply urea at 100 kg/ha as top dressing fertilizer dose for rice.",
+        source="fertilizer_guide.pdf",
+        title="Fertilizer Guide",
+        crop="rice",
+        page=4,
+        topic="nutrient_management",
+    )
+
+    # 1. intent="nutrient" normalizes to nutrient_management
+    assert LLMService._has_relevant_evidence(
+        query="What is the dose?",
+        chunks=[fertilizer_chunk],
+        intent="nutrient",
+    ) is True
+
+    # 2. intent="general" falls back to query keywords
+    assert LLMService._has_relevant_evidence(
+        query="What fertilizer dose should I apply?",
+        chunks=[fertilizer_chunk],
+        intent="general",
+    ) is True
+
+    # 3. intent=None falls back to query keywords
+    assert LLMService._has_relevant_evidence(
+        query="What fertilizer dose should I apply?",
+        chunks=[fertilizer_chunk],
+        intent=None,
+    ) is True
+
+    # 4. Unknown intent and non-matching query rejects evidence
+    assert LLMService._has_relevant_evidence(
+        query="Tell me something random about rice",
+        chunks=[fertilizer_chunk],
+        intent=None,
+    ) is False
