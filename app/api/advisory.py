@@ -40,6 +40,17 @@ async def generate_advisory(request: AdvisoryRequest) -> AdvisoryResponse:
         explicit_stage=request.crop_stage,
     )
 
+    query_crop = query_service.extract_query_crop(request.query)
+    if request.crop and query_crop and query_crop != detected_crop:
+        raise HTTPException(
+            status_code=400,
+            detail=(
+                f"Selected crop '{detected_crop}' conflicts with the crop "
+                f"'{query_crop}' named in the question. Please clarify which crop "
+                "the advisory should address."
+            ),
+        )
+
     if not detected_crop:
         raise HTTPException(
             status_code=400,
@@ -55,6 +66,7 @@ async def generate_advisory(request: AdvisoryRequest) -> AdvisoryResponse:
     crop=detected_crop,
     top_k=settings.default_top_k,
     intent=intent,
+    location=request.location,
 )
 
     # 3. Retrieve real-time dynamic weather context

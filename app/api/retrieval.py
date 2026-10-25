@@ -20,6 +20,7 @@ def retrieve_knowledge(request: RetrievalRequest) -> RetrievalResponse:
             query=request.query,
             crop=request.crop,
             top_k=request.top_k,
+            location=request.location,
         )
         return RetrievalResponse(
             query=request.query,

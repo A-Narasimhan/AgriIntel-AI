@@ -62,6 +62,21 @@ def test_advisory_pipeline_requires_crop_if_unidentifiable():
     assert "Could not identify the target crop" in response.json()["detail"]
 
 
+def test_advisory_pipeline_rejects_selected_crop_conflict():
+    payload = {
+        "query": "What are the symptoms of blast disease in groundnut and how can I manage it?",
+        "crop": "soybean",
+    }
+    with patch("app.api.advisory.weather_service.get_weather", AsyncMock()) as weather, \
+         patch("app.api.advisory.retrieval_service.retrieve") as retrieve:
+        response = client.post("/advisory", json=payload)
+
+    assert response.status_code == 400
+    assert "conflicts" in response.json()["detail"]
+    weather.assert_not_awaited()
+    retrieve.assert_not_called()
+
+
 def test_interactions_endpoint():
     response = client.get("/interactions?limit=5")
     assert response.status_code == 200
@@ -320,6 +335,118 @@ def test_advisory_pipeline_negative_spotted_bollworm_rejected_for_disease_query(
     assert data["evidence_grounded"] is False
     assert len(data["sources"]) == 0
     assert "Reliable supporting information was not found" in data["advisory"]
+
+
+def test_advisory_pipeline_named_disease_without_matching_evidence_is_ungrounded(mock_weather):
+    generic_disease_chunk = RetrievedChunk(
+        text="Rice seed treatment helps prevent disease and supports healthy cultivation.",
+        source="rice_cultivation.pdf",
+        title="Rice Cultivation Guide",
+        crop="rice",
+        page=6,
+        topic="disease management",
+    )
+    payload = {
+        "query": "How to control blast disease in paddy fields?",
+        "crop": "rice",
+    }
+
+    with patch("app.api.advisory.weather_service.get_weather", AsyncMock(return_value=mock_weather)), \
+         patch("app.api.advisory.retrieval_service.retrieve", return_value=[generic_disease_chunk]):
+        response = client.post("/advisory", json=payload)
+
+    assert response.status_code == 200
+    data = response.json()
+    assert data["evidence_grounded"] is False
+    assert data["sources"] == []
+    assert "Reliable supporting information was not found" in data["advisory"]
+
+
+def test_advisory_pipeline_combined_disease_query_requires_symptoms_and_management(mock_weather):
+    symptoms_only = RetrievedChunk(
+        text="Rice blast symptoms include spindle-shaped lesions on leaves and necks.",
+        source="rice_disease.pdf",
+        title="Rice Disease Guide",
+        crop="rice",
+        page=7,
+        topic="disease",
+    )
+    payload = {
+        "query": "What are rice blast symptoms and how can I control blast?",
+        "crop": "rice",
+    }
+
+    with patch("app.api.advisory.weather_service.get_weather", AsyncMock(return_value=mock_weather)), \
+         patch("app.api.advisory.retrieval_service.retrieve", return_value=[symptoms_only]):
+        response = client.post("/advisory", json=payload)
+
+    assert response.status_code == 200
+    data = response.json()
+    assert data["evidence_grounded"] is False
+    assert data["sources"] == []
+    assert "Reliable supporting information was not found" in data["advisory"]
+
+
+def test_advisory_pipeline_broad_pest_query_asks_for_specific_pest(mock_weather):
+    generic_chunks = [
+        RetrievedChunk(
+            text="Cotton sowing dates and moisture conservation practices.",
+            source="cotton_guide.pdf",
+            title="Cotton Guide",
+            crop="cotton",
+            page=4,
+            topic="pest_management",
+        ),
+        RetrievedChunk(
+            text="Cotton seed treatment and weed control recommendations.",
+            source="cotton_guide.pdf",
+            title="Cotton Guide",
+            crop="cotton",
+            page=5,
+            topic="pest_management",
+        ),
+    ]
+    payload = {
+        "query": "How to manage a cotton pest?",
+        "crop": "cotton",
+    }
+
+    with patch("app.api.advisory.weather_service.get_weather", AsyncMock(return_value=mock_weather)), \
+         patch("app.api.advisory.retrieval_service.retrieve", return_value=generic_chunks):
+        response = client.post("/advisory", json=payload)
+
+    assert response.status_code == 200
+    data = response.json()
+    assert data["evidence_grounded"] is False
+    assert data["sources"] == []
+    assert "identify the specific cotton pest" in data["advisory"].lower()
+
+
+def test_advisory_pipeline_warangal_does_not_present_jammu_blast_as_local(mock_weather):
+    regional_chunk = RetrievedChunk(
+        text="Jammu and Kashmir fungicidal management: blast control requires scheduled sprays.",
+        source="rice_production_and_protection.pdf",
+        title="ICAR Rice Guide",
+        crop="rice",
+        page=33,
+        topic="disease_management",
+        regional_scope="Jammu and Kashmir",
+    )
+    payload = {
+        "query": "How to manage blast disease in rice",
+        "crop": "rice",
+        "location": "Warangal",
+    }
+
+    with patch("app.api.advisory.weather_service.get_weather", AsyncMock(return_value=mock_weather)), \
+         patch("app.api.advisory.retrieval_service.retrieve", return_value=[regional_chunk]):
+        response = client.post("/advisory", json=payload)
+
+    assert response.status_code == 200
+    data = response.json()
+    assert data["evidence_grounded"] is False
+    assert data["sources"] == []
+    assert "locally applicable" in data["advisory"].lower()
 
 
 def test_advisory_pipeline_negative_yield_loss_rejected_for_harvesting_query(mock_weather):

@@ -64,6 +64,15 @@ STAGE_KEYWORD_PATTERNS = {
 class QueryUnderstandingService:
     """Extracts agricultural intent, target crop, and growth stage deterministically."""
 
+    @staticmethod
+    def extract_query_crop(query: str) -> Optional[str]:
+        """Return the crop explicitly named in the query, if any."""
+        q_lower = query.lower()
+        for crop, patterns in CROP_KEYWORD_PATTERNS.items():
+            if any(re.search(pattern, q_lower) for pattern in patterns):
+                return crop
+        return None
+
     def extract_context(
         self,
         query: str,
@@ -76,11 +85,7 @@ class QueryUnderstandingService:
         # 1. Crop resolution
         crop = normalize_crop_name(explicit_crop)
         if not crop:
-            q_lower = query.lower()
-            for c_name, patterns in CROP_KEYWORD_PATTERNS.items():
-                if any(re.search(pat, q_lower) for pat in patterns):
-                    crop = c_name
-                    break
+            crop = self.extract_query_crop(query)
 
         # 2. Intent resolution
         intent = "general"

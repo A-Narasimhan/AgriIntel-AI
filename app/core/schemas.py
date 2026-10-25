@@ -27,6 +27,7 @@ class RetrievalRequest(BaseModel):
     query: str = Field(..., min_length=2, description="Farmer or researcher query.")
     crop: Optional[str] = Field(None, description="Target crop (rice, cotton, maize, groundnut, soybean).")
     top_k: int = Field(default=4, ge=1, le=20, description="Number of chunks to retrieve.")
+    location: Optional[str] = Field(None, description="Optional location for regional relevance ranking.")
 
 
 class RetrievedChunk(BaseModel):
@@ -39,6 +40,7 @@ class RetrievedChunk(BaseModel):
     year: Optional[int] = Field(None, description="Publication year.")
     topic: Optional[str] = Field(None, description="Agricultural domain/topic.")
     score: Optional[float] = Field(None, description="Relevance score (higher is more similar).")
+    regional_scope: Optional[str] = Field(None, description="Regional scope inferred from passage text.")
 
 
 class RetrievalResponse(BaseModel):
@@ -89,6 +91,7 @@ class SourceReference(BaseModel):
     page: Optional[int] = None
     year: Optional[int] = None
     excerpt: Optional[str] = None
+    regional_scope: Optional[str] = None
 
 
 class AdvisoryResponse(BaseModel):

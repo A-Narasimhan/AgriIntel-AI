@@ -34,6 +34,25 @@ def test_chunk_page_text_preserves_page_number():
         assert len(c["text"]) <= 600
 
 
+def test_chunk_overlap_does_not_start_mid_sentence():
+    text = (
+        "Rice blast causes lesions on leaves and panicles. "
+        "Field sanitation reduces disease pressure. "
+        "Use recommended management practices for affected fields. "
+    ) * 20
+    chunks = chunk_page_text(
+        text=text,
+        page_number=5,
+        base_metadata={"crop": "rice"},
+        chunk_size=180,
+        chunk_overlap=50,
+    )
+
+    assert len(chunks) >= 2
+    for chunk in chunks[1:]:
+        assert chunk["text"][0].isupper()
+
+
 def test_chunk_page_text_filters_short_noise():
     short_noise = "Pg 1"
     chunks = chunk_page_text(

@@ -6,12 +6,14 @@ Supports configurable LLM providers (Gemini, OpenAI, Groq, or offline Grounded S
 without hardcoding API keys or dependencies.
 """
 
+import re
 from typing import List, Optional, Tuple
 import json
 import httpx
 
 from app.core.config import settings
 from app.core.schemas import RetrievedChunk, WeatherContext, SourceReference
+from app.rag.metadata import normalize_crop_name
 
 
 class LLMService:
@@ -49,7 +51,8 @@ class LLMService:
         # Format retrieved evidence
         if chunks:
             evidence_text = "\n\n".join([
-                f"[Source {i+1}: {c.title} ({c.source}), Page {c.page or 'N/A'}, Crop: {c.crop.capitalize()}]\n{c.text}"
+                f"[Source {i+1}: {c.title} ({c.source}), Page {c.page or 'N/A'}, "
+                f"Crop: {c.crop.capitalize()}, Regional scope: {c.regional_scope or 'general'}]\n{c.text}"
                 for i, c in enumerate(chunks)
             ])
         else:
@@ -90,6 +93,7 @@ class LLMService:
         query: str,
         chunks: List[RetrievedChunk],
         intent: Optional[str] = None,
+        crop: Optional[str] = None,
     ) -> bool:
         """Reject retrieved chunks that do not support the query's intent."""
         if not chunks:
@@ -295,7 +299,9 @@ class LLMService:
         groups = intent_groups[detected_intent]
 
         for chunk in chunks:
-            content = f"{chunk.topic or ''} {chunk.text}".lower()
+            if crop and normalize_crop_name(chunk.crop) != normalize_crop_name(crop):
+                continue
+            content = chunk.text.lower()
 
             # For irrigation questions, require BOTH water-management
             # evidence and a relevant stage/stress/scheduling signal in the same chunk.
@@ -360,13 +366,154 @@ class LLMService:
 
                 continue
 
+            if detected_intent == "disease":
+                named_disease_terms = LLMService._named_disease_terms(query_lower)
+                if named_disease_terms and not any(
+                    term in content for term in named_disease_terms
+                ):
+                    continue
+                continue
+
+            if detected_intent == "pest":
+                named_pest_terms = LLMService._named_pest_terms(query_lower)
+                if not named_pest_terms or not any(
+                    re.search(rf"\b{re.escape(term)}\b", content)
+                    for term in named_pest_terms
+                ):
+                    continue
+
             if all(
                 any(term in content for term in group)
                 for group in groups
             ):
                 return True
 
+        if detected_intent == "disease":
+            named_disease_terms = LLMService._named_disease_terms(query_lower)
+            eligible_chunks = [
+                chunk.text.lower()
+                for chunk in chunks
+                if (not crop or normalize_crop_name(chunk.crop) == normalize_crop_name(crop))
+                and (
+                    not named_disease_terms
+                    or LLMService._matches_named_disease(chunk.text, named_disease_terms)
+                )
+            ]
+            return bool(eligible_chunks) and LLMService._has_requested_disease_evidence(
+                " ".join(eligible_chunks), query_lower
+            )
+
         return False
+
+    @staticmethod
+    def _named_pest_terms(query: str) -> List[str]:
+        pest_terms = (
+            "bollworm", "whitefly", "aphid", "thrips", "jassid", "armyworm",
+            "stem borer", "borer", "leafhopper", "leaf folder", "caterpillar",
+            "mealybug", "mite", "weevil", "beetle", "planthopper", "hopper",
+            "bug", "grub", "pink bollworm",
+        )
+        query_lower = query.lower()
+        return [
+            term for term in pest_terms
+            if re.search(rf"\b{re.escape(term)}\b", query_lower)
+        ]
+
+    @staticmethod
+    def _regional_scope(text: str) -> Optional[str]:
+        regions = (
+            "Jammu & Kashmir", "Jammu and Kashmir", "Telangana", "Andhra Pradesh",
+            "Uttar Pradesh", "Uttarakhand", "Punjab", "Karnataka", "Gujarat",
+            "Tamil Nadu", "Maharashtra", "Odisha", "Rajasthan", "Kerala",
+            "West Bengal", "Bihar", "Chhattisgarh", "Madhya Pradesh",
+        )
+        for region in regions:
+            if re.search(rf"\b{re.escape(region)}\b", text, re.IGNORECASE):
+                return region
+        return None
+
+    @staticmethod
+    def _location_regions(location: Optional[str]) -> Tuple[str, ...]:
+        location_lower = (location or "").lower()
+        if "warangal" in location_lower or "telangana" in location_lower:
+            return ("Telangana", "Andhra Pradesh")
+        if "andhra" in location_lower:
+            return ("Andhra Pradesh", "Telangana")
+        if "jammu" in location_lower or "kashmir" in location_lower:
+            return ("Jammu & Kashmir", "Jammu and Kashmir")
+        return ()
+
+    @staticmethod
+    def _has_requested_disease_evidence(content: str, query: str) -> bool:
+        """Require evidence for every disease task explicitly requested."""
+        query_lower = query.lower()
+        aspect_terms = LLMService._requested_disease_aspect_terms(query_lower)
+        return all(any(term in content for term in terms) for terms in aspect_terms)
+
+    @staticmethod
+    def _chunk_supports_disease_aspect(text: str, query: str) -> bool:
+        """Keep named-disease passages that support at least one requested aspect."""
+        named_disease_terms = LLMService._named_disease_terms(query)
+        if named_disease_terms and not LLMService._matches_named_disease(
+            text, named_disease_terms
+        ):
+            return False
+        aspect_terms = LLMService._requested_disease_aspect_terms(query)
+        content = text.lower()
+        return any(any(term in content for term in terms) for terms in aspect_terms)
+
+    @staticmethod
+    def _matches_named_disease(text: str, disease_terms: List[str]) -> bool:
+        """Match disease names in passage text, including tikka's leaf-spot synonym."""
+        text_lower = text.lower()
+        for term in disease_terms:
+            if re.search(rf"\b{re.escape(term)}\b", text_lower):
+                return True
+            if term == "tikka" and re.search(
+                r"\b(early|late|groundnut|peanut)?\s*leaf\s*spots?\b",
+                text_lower,
+            ):
+                return True
+        return False
+
+    @staticmethod
+    def _requested_disease_aspect_terms(query: str) -> List[Tuple[str, ...]]:
+        """Return one evidence group for each disease task named in the query."""
+        query_lower = query.lower()
+        aspects: List[Tuple[str, ...]] = []
+        if re.search(r"\b(symptom|symptoms|sign|signs|identify|recognize)\b", query_lower):
+            aspects.append((
+                "symptom", "symptoms", "sign", "signs", "lesion", "spot", "leaf",
+            ))
+        if re.search(
+            r"\b(control|manage|management|treat|treatment|prevent|prevention|spray|fungicide|remedy)\b",
+            query_lower,
+        ):
+            aspects.append((
+                "control", "manage", "management", "treatment", "prevent",
+                "spray", "fungicide", "sanitation", "seed treatment",
+            ))
+        if not aspects:
+            aspects.append((
+                "lesion", "spot", "symptom", "sign", "leaf", "panicle", "neck",
+                "seedling", "fungicide", "spray", "treatment", "control",
+                "management", "sanitation", "seed treatment",
+            ))
+        return aspects
+
+    @staticmethod
+    def _named_disease_terms(query: str) -> List[str]:
+        """Extract specific disease names required for disease grounding."""
+        disease_terms = (
+            "blast", "tikka", "blight", "rust", "wilt", "mildew", "rot",
+            "smut", "anthracnose", "cercospora", "damping off", "leaf spot",
+            "brown spot", "leaf curl", "mosaic",
+        )
+        query_lower = query.lower()
+        return [
+            term for term in disease_terms
+            if re.search(rf"\b{re.escape(term)}\b", query_lower)
+        ]
 
 
     async def generate_advisory(
@@ -384,13 +531,53 @@ class LLMService:
         Returns (advisory_text, sources_list, is_evidence_grounded).
         """
 
-        # Filter chunks to only those that genuinely provide relevant evidence
-        relevant_chunks = [
-            c for c in chunks
-            if self._has_relevant_evidence(query, [c], intent=intent)
-        ]
+        if intent == "pest" and not self._named_pest_terms(query):
+            advisory = (
+                f"Please identify the specific {crop.capitalize()} pest you are "
+                "observing, such as a named insect or symptom, so that the "
+                "curated knowledge base can provide a relevant management recommendation."
+            )
+            return advisory, [], False
 
-        if not relevant_chunks:
+        if intent == "disease":
+            relevant_chunks = [
+                c for c in chunks
+                if (not crop or normalize_crop_name(c.crop) == normalize_crop_name(crop))
+                and self._chunk_supports_disease_aspect(c.text, query)
+            ]
+        else:
+            relevant_chunks = [
+                c for c in chunks
+                if self._has_relevant_evidence(query, [c], intent=intent, crop=crop)
+            ]
+
+        preferred_regions = self._location_regions(location)
+        regional_limit = False
+        if preferred_regions and relevant_chunks:
+            applicable = [
+                c for c in relevant_chunks
+                if (c.regional_scope or self._regional_scope(c.text)) is None
+                or (c.regional_scope or self._regional_scope(c.text)) in preferred_regions
+            ]
+            if applicable:
+                relevant_chunks = applicable
+            else:
+                relevant_chunks = []
+                regional_limit = True
+
+        if not relevant_chunks or not self._has_relevant_evidence(
+            query, relevant_chunks, intent=intent, crop=crop
+        ):
+            if regional_limit:
+                advisory = (
+                    f"The curated evidence found for this {crop.capitalize()} disease "
+                    f"is region-specific and does not include locally applicable "
+                    f"guidance for {location}. It has not been presented as locally "
+                    "validated. "
+                    "Please consult your local Krishi Vigyan Kendra (KVK) or an "
+                    "ICAR agricultural extension officer."
+                )
+                return advisory, [], False
             advisory = (
                 f"Reliable supporting information was not found in the curated "
                 f"knowledge base for this {crop.capitalize()} query. "
@@ -420,6 +607,7 @@ class LLMService:
                     page=c.page,
                     year=c.year,
                     excerpt=c.text[:180] + "..." if len(c.text) > 180 else c.text,
+                    regional_scope=c.regional_scope or self._regional_scope(c.text),
                 )
             )
 

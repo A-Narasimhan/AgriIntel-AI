@@ -66,6 +66,13 @@ def clean_text(text: str) -> str:
     return text.strip()
 
 
+def _overlap_from_sentence_boundary(text: str, overlap: int) -> str:
+    """Keep overlap context without starting the next chunk mid-sentence."""
+    tail = text[-overlap:] if len(text) > overlap else text
+    boundary = max(tail.rfind("."), tail.rfind("!"), tail.rfind("?"))
+    return tail[boundary + 1:].strip() if boundary >= 0 else tail.strip()
+
+
 def chunk_page_text(
     text: str,
     page_number: int,
@@ -126,7 +133,7 @@ def chunk_page_text(
                 })
                 chunk_idx += 1
                 # Overlap: keep tail of current_chunk
-                overlap_text = current_chunk[-chunk_overlap:] if len(current_chunk) > chunk_overlap else ""
+                overlap_text = _overlap_from_sentence_boundary(current_chunk, chunk_overlap)
                 current_chunk = f"{overlap_text}\n\n{para}".strip()
             else:
                 # If a single paragraph exceeds chunk_size, split by sentences
@@ -146,7 +153,7 @@ def chunk_page_text(
                                 }
                             })
                             chunk_idx += 1
-                            overlap_text = sub_chunk[-chunk_overlap:] if len(sub_chunk) > chunk_overlap else ""
+                            overlap_text = _overlap_from_sentence_boundary(sub_chunk, chunk_overlap)
                             sub_chunk = f"{overlap_text} {sent}".strip()
                         else:
                             # Hard split if sentence is unusually long

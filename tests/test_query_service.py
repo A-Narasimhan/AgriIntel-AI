@@ -26,6 +26,12 @@ def test_crop_extraction_from_query_keywords():
         assert crop == expected_crop, f"Failed for query: {q}"
 
 
+def test_query_crop_is_retained_for_conflict_detection():
+    assert query_service.extract_query_crop(
+        "What are blast symptoms in groundnut?"
+    ) == "groundnut"
+
+
 def test_intent_classification():
     test_cases = [
         ("How to manage whitefly and thrips?", "pest"),
