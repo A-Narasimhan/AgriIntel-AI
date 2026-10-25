@@ -1,117 +1,79 @@
-import { useState } from 'react'
-import './index.css'
+import React, { useState } from 'react'
+import Header from './components/Header'
+import WeatherCard from './components/WeatherCard'
+import AdvisoryCard from './components/AdvisoryCard'
+import SourcesCard from './components/SourcesCard'
+import KnowledgeBaseStatus from './components/KnowledgeBaseStatus'
+import {
+  SearchIcon,
+  SparklesIcon,
+  RefreshCwIcon,
+  MapPinIcon,
+  ActivityIcon,
+  AlertTriangleIcon,
+  ShieldCheckIcon,
+  LayersIcon,
+  CheckCircleIcon,
+  BookOpenIcon,
+  SproutIcon
+} from './components/Icons'
 
-const API_BASE = 'http://localhost:8000'
+const API_BASE = 'http://localhost:8001'
 
 const CROPS = [
-  { value: '', label: '— Select Crop —' },
-  { value: 'rice', label: '🌾 Rice' },
-  { value: 'cotton', label: '🌿 Cotton' },
-  { value: 'maize', label: '🌽 Maize' },
-  { value: 'groundnut', label: '🥜 Groundnut' },
-  { value: 'soybean', label: '🫘 Soybean' },
+  { value: '', label: 'Select Target Crop' },
+  { value: 'rice', label: 'Rice (Paddy)' },
+  { value: 'cotton', label: 'Cotton' },
+  { value: 'maize', label: 'Maize (Corn)' },
+  { value: 'groundnut', label: 'Groundnut (Peanut)' },
+  { value: 'soybean', label: 'Soybean' },
 ]
 
-function WeatherCard({ weather }) {
-  if (!weather) return null
+const QUICK_PRESETS = [
+  {
+    crop: 'rice',
+    label: 'Rice: Blast Disease Control',
+    query: 'How to control blast disease in paddy fields?',
+    location: 'Warangal',
+    stage: 'tillering',
+  },
+  {
+    crop: 'cotton',
+    label: 'Cotton: Dry Spell Irrigation',
+    query: 'What is the recommended irrigation schedule during dry spells?',
+    location: 'Warangal',
+    stage: 'flowering',
+  },
+  {
+    crop: 'groundnut',
+    label: 'Groundnut: Tikka & Water Mgmt',
+    query: 'What are the recommended practices for Tikka disease and water management in groundnut?',
+    location: 'Guntur',
+    stage: 'pegging',
+  },
+  {
+    crop: 'maize',
+    label: 'Maize: Fall Armyworm & NPK',
+    query: 'How to control Fall Armyworm and apply fertilizers in maize crop?',
+    location: 'Warangal',
+    stage: 'vegetative',
+  },
+  {
+    crop: 'soybean',
+    label: 'Soybean: Yellow Mosaic & Weeds',
+    query: 'How to manage yellow mosaic virus and weed control in soybean?',
+    location: 'Indore',
+    stage: 'vegetative',
+  },
+]
 
-  if (!weather.is_available) {
-    return (
-      <div className="card">
-        <div className="card-title">🌦️ Weather Context</div>
-        <div style={{ color: 'var(--text-muted)', fontSize: '0.85rem' }}>{weather.note}</div>
-      </div>
-    )
-  }
-
-  return (
-    <div className="card">
-      <div className="card-title">🌦️ Weather — {weather.location}</div>
-      <div className="weather-grid">
-        {weather.temperature != null && (
-          <div className="weather-stat">
-            <div className="weather-stat-label">Temperature</div>
-            <div className="weather-stat-value">{weather.temperature}°C</div>
-          </div>
-        )}
-        {weather.humidity != null && (
-          <div className="weather-stat">
-            <div className="weather-stat-label">Humidity</div>
-            <div className="weather-stat-value">{weather.humidity}%</div>
-          </div>
-        )}
-        {weather.precipitation != null && (
-          <div className="weather-stat">
-            <div className="weather-stat-label">Precipitation</div>
-            <div className="weather-stat-value">{weather.precipitation} mm</div>
-          </div>
-        )}
-        {weather.wind_speed != null && (
-          <div className="weather-stat">
-            <div className="weather-stat-label">Wind Speed</div>
-            <div className="weather-stat-value">{weather.wind_speed} km/h</div>
-          </div>
-        )}
-      </div>
-      {weather.condition && <div className="weather-condition">☁️ {weather.condition}</div>}
-      {weather.forecast_summary && (
-        <div className="weather-condition" style={{ marginTop: '0.4rem', color: 'var(--text-secondary)' }}>
-          📅 {weather.forecast_summary}
-        </div>
-      )}
-    </div>
-  )
-}
-
-function SourcesCard({ sources }) {
-  if (!sources || sources.length === 0) return null
-
-  return (
-    <div className="card">
-      <div className="card-title">📚 Agricultural Sources Cited</div>
-      <div className="sources-list">
-        {sources.map((src, i) => (
-          <div key={i} className="source-item">
-            <div className="source-title">{src.title}</div>
-            <div className="source-meta">
-              {src.crop && <span className="chip chip-green" style={{ marginRight: '0.4rem' }}>{src.crop}</span>}
-              {src.page && <span>Page {src.page}</span>}
-              {src.year && <span style={{ marginLeft: '0.5rem' }}>· {src.year}</span>}
-            </div>
-            {src.excerpt && (
-              <div className="source-excerpt">&ldquo;{src.excerpt}&rdquo;</div>
-            )}
-          </div>
-        ))}
-      </div>
-    </div>
-  )
-}
-
-function AdvisoryCard({ data }) {
-  if (!data) return null
-
-  return (
-    <div className="card">
-      <div className="card-title">🌱 Advisory Response</div>
-      <div className="meta-row">
-        {data.intent && <span className="chip chip-blue">Intent: {data.intent.replace('_', ' ')}</span>}
-        {data.crop && <span className="chip chip-green">{data.crop}</span>}
-        {data.crop_stage && <span className="chip chip-yellow">{data.crop_stage}</span>}
-        {data.evidence_grounded
-          ? <span className="chip chip-green">✓ Evidence Grounded</span>
-          : <span className="chip chip-red">⚠ No Evidence Found</span>
-        }
-      </div>
-      <div className="advisory-text">{data.advisory}</div>
-      {data.interaction_id && (
-        <div style={{ marginTop: '0.6rem', fontSize: '0.72rem', color: 'var(--text-muted)' }}>
-          Interaction ID: {data.interaction_id}
-        </div>
-      )}
-    </div>
-  )
-}
+const STAGE_SUGGESTIONS = [
+  'Seedling / Nursery',
+  'Vegetative',
+  'Flowering',
+  'Boll / Pod Formation',
+  'Maturity / Harvest',
+]
 
 export default function App() {
   const [crop, setCrop] = useState('')
@@ -122,7 +84,15 @@ export default function App() {
   const [error, setError] = useState(null)
   const [result, setResult] = useState(null)
 
-  async function handleSubmit(e) {
+  const handleApplyPreset = (preset) => {
+    setCrop(preset.crop)
+    setQuery(preset.query)
+    setLocation(preset.location)
+    setCropStage(preset.stage)
+    setError(null)
+  }
+
+  const handleSubmit = async (e) => {
     e.preventDefault()
     if (!query.trim()) return
 
@@ -145,18 +115,20 @@ export default function App() {
       const data = await res.json()
 
       if (!res.ok) {
-        setError(data.detail || `Server error: ${res.status}`)
+        setError(data.detail || `Server error: HTTP ${res.status}`)
       } else {
         setResult(data)
       }
     } catch (err) {
-      setError(`Connection error: ${err.message}. Make sure the backend is running at ${API_BASE}`)
+      setError(
+        `Unable to reach backend API at ${API_BASE} (${err.message || 'Network Error'}). Verify that the FastAPI service is running.`
+      )
     } finally {
       setLoading(false)
     }
   }
 
-  function handleReset() {
+  const handleReset = () => {
     setQuery('')
     setLocation('')
     setCrop('')
@@ -166,156 +138,280 @@ export default function App() {
   }
 
   return (
-    <div className="app-wrapper">
-      <header>
-        <div className="logo">
-          <div className="logo-icon">🌾</div>
-          <div className="logo-text">Agri<span>Intel</span> AI</div>
-        </div>
-        <span className="header-badge">Smart Agricultural Advisory</span>
-      </header>
+    <div className="app-container">
+      <Header />
 
-      <main>
-        {/* LEFT: Input Panel */}
-        <div>
-          <form className="card" onSubmit={handleSubmit} id="advisory-form">
-            <div className="card-title">🔍 Farmer Query</div>
-
-            <div className="form-group">
-              <label htmlFor="crop-select">Target Crop *</label>
-              <select
-                id="crop-select"
-                value={crop}
-                onChange={e => setCrop(e.target.value)}
-              >
-                {CROPS.map(c => (
-                  <option key={c.value} value={c.value}>{c.label}</option>
-                ))}
-              </select>
+      <main className="app-main">
+        {/* Left Column: Query Panel & System Overview */}
+        <div className="sidebar-column">
+          <div className="card query-form-card">
+            <div className="card-header">
+              <div className="card-title-group">
+                <SearchIcon size={18} className="card-icon text-emerald" />
+                <h2 className="card-title">Agronomic Query Parameters</h2>
+              </div>
             </div>
 
-            <div className="form-group">
-              <label htmlFor="query-input">Farmer Query *</label>
-              <textarea
-                id="query-input"
-                placeholder="e.g. What are the symptoms and control measures for blast disease in paddy?"
-                value={query}
-                onChange={e => setQuery(e.target.value)}
-                required
-              />
-            </div>
-
-            <div className="form-group">
-              <label htmlFor="location-input">Location</label>
-              <input
-                id="location-input"
-                type="text"
-                placeholder="e.g. Warangal, Guntur, Nagpur…"
-                value={location}
-                onChange={e => setLocation(e.target.value)}
-              />
-            </div>
-
-            <div className="form-group">
-              <label htmlFor="stage-input">Crop Growth Stage (optional)</label>
-              <input
-                id="stage-input"
-                type="text"
-                placeholder="e.g. tillering, flowering, boll formation…"
-                value={cropStage}
-                onChange={e => setCropStage(e.target.value)}
-              />
-            </div>
-
-            <button
-              type="submit"
-              className="btn-primary"
-              id="submit-advisory-btn"
-              disabled={loading || !query.trim()}
-            >
-              {loading
-                ? <><div className="spinner" /> Generating Advisory…</>
-                : '⚡ Get Agricultural Advisory'
-              }
-            </button>
-
-            {result && (
-              <button
-                type="button"
-                onClick={handleReset}
-                style={{
-                  width: '100%',
-                  marginTop: '0.6rem',
-                  padding: '0.55rem',
-                  background: 'transparent',
-                  border: '1px solid var(--border)',
-                  borderRadius: 'var(--radius-sm)',
-                  color: 'var(--text-muted)',
-                  cursor: 'pointer',
-                  fontFamily: "'Inter', sans-serif",
-                  fontSize: '0.85rem',
-                  transition: 'border-color 0.2s',
-                }}
-                onMouseEnter={e => e.target.style.borderColor = 'var(--text-secondary)'}
-                onMouseLeave={e => e.target.style.borderColor = 'var(--border)'}
-              >
-                ↺ New Query
-              </button>
-            )}
-          </form>
-
-          {/* Knowledge Base Status Info */}
-          <div className="card" style={{ marginTop: '1.25rem' }}>
-            <div className="card-title">ℹ️ Knowledge Base Status</div>
-            <div style={{ fontSize: '0.82rem', color: 'var(--text-secondary)', lineHeight: '1.7' }}>
-              <p>Currently supported crops:</p>
-              <div style={{ display: 'flex', flexWrap: 'wrap', gap: '0.4rem', marginTop: '0.5rem' }}>
-                {['Rice', 'Cotton', 'Maize', 'Groundnut', 'Soybean'].map(c => (
-                  <span key={c} className="chip chip-green">{c}</span>
+            {/* Quick Demonstration Presets */}
+            <div className="presets-section">
+              <span className="presets-label">Evaluation Presets:</span>
+              <div className="presets-scroll">
+                {QUICK_PRESETS.map((p, idx) => (
+                  <button
+                    key={idx}
+                    type="button"
+                    className={`preset-chip ${crop === p.crop && query === p.query ? 'preset-chip-active' : ''}`}
+                    onClick={() => handleApplyPreset(p)}
+                  >
+                    {p.label}
+                  </button>
                 ))}
               </div>
-              <p style={{ marginTop: '0.75rem', color: 'var(--text-muted)' }}>
-                Place approved ICAR PDF documents in <code style={{ color: 'var(--accent-green)' }}>data/knowledge_base/&lt;crop&gt;/</code> and run <code style={{ color: 'var(--accent-green)' }}>build_knowledge_base.py</code> to index them.
-              </p>
             </div>
+
+            <form onSubmit={handleSubmit} id="advisory-form" className="query-form">
+              {/* Target Crop */}
+              <div className="form-group">
+                <label htmlFor="crop-select" className="form-label">
+                  Target Crop <span className="label-required">*</span>
+                </label>
+                <div className="select-wrapper">
+                  <select
+                    id="crop-select"
+                    className="form-control select-control"
+                    value={crop}
+                    onChange={e => setCrop(e.target.value)}
+                  >
+                    {CROPS.map(c => (
+                      <option key={c.value} value={c.value}>{c.label}</option>
+                    ))}
+                  </select>
+                </div>
+              </div>
+
+              {/* Farmer Query */}
+              <div className="form-group">
+                <div className="form-label-row">
+                  <label htmlFor="query-input" className="form-label">
+                    Farmer Query <span className="label-required">*</span>
+                  </label>
+                  <span className="char-count">{query.length} characters</span>
+                </div>
+                <textarea
+                  id="query-input"
+                  className="form-control textarea-control"
+                  placeholder="Enter farmer observation or agronomic question (e.g. How to manage blast disease, nutrient schedule, and irrigation in rice?)"
+                  value={query}
+                  onChange={e => setQuery(e.target.value)}
+                  rows={4}
+                  required
+                />
+              </div>
+
+              {/* Location Field */}
+              <div className="form-group">
+                <label htmlFor="location-input" className="form-label">
+                  Location (District / Town)
+                </label>
+                <div className="input-with-icon">
+                  <MapPinIcon size={16} className="input-icon text-muted" />
+                  <input
+                    id="location-input"
+                    type="text"
+                    className="form-control input-control"
+                    placeholder="e.g. Warangal, Guntur, Nagpur, Indore"
+                    value={location}
+                    onChange={e => setLocation(e.target.value)}
+                  />
+                </div>
+                <span className="field-hint">Used for live Open-Meteo precipitation & temperature intelligence.</span>
+              </div>
+
+              {/* Growth Stage Field */}
+              <div className="form-group">
+                <label htmlFor="stage-input" className="form-label">
+                  Observed Growth Stage (Optional)
+                </label>
+                <div className="input-with-icon">
+                  <ActivityIcon size={16} className="input-icon text-muted" />
+                  <input
+                    id="stage-input"
+                    type="text"
+                    className="form-control input-control"
+                    placeholder="e.g. tillering, flowering, vegetative"
+                    value={cropStage}
+                    onChange={e => setCropStage(e.target.value)}
+                  />
+                </div>
+                <div className="stage-suggestions">
+                  {STAGE_SUGGESTIONS.map(st => (
+                    <button
+                      key={st}
+                      type="button"
+                      className="stage-chip"
+                      onClick={() => setCropStage(st.toLowerCase())}
+                    >
+                      {st}
+                    </button>
+                  ))}
+                </div>
+              </div>
+
+              {/* Action Buttons */}
+              <div className="form-actions">
+                <button
+                  type="submit"
+                  className="btn btn-primary"
+                  id="submit-advisory-btn"
+                  disabled={loading || !query.trim()}
+                >
+                  {loading ? (
+                    <>
+                      <div className="spinner" />
+                      <span>Generating Agricultural Advisory...</span>
+                    </>
+                  ) : (
+                    <>
+                      <SparklesIcon size={16} />
+                      <span>Generate Grounded Advisory</span>
+                    </>
+                  )}
+                </button>
+
+                {(query || crop || location || cropStage || result) && (
+                  <button
+                    type="button"
+                    onClick={handleReset}
+                    className="btn btn-secondary"
+                  >
+                    <RefreshCwIcon size={14} />
+                    <span>Reset Parameters</span>
+                  </button>
+                )}
+              </div>
+            </form>
           </div>
+
+          <KnowledgeBaseStatus />
         </div>
 
-        {/* RIGHT: Results Panel */}
-        <div className="results-panel">
-          {!result && !error && (
-            <div className="card">
-              <div className="empty-state">
-                <div className="empty-icon">🌿</div>
-                <div className="empty-title">Ready for Farmer Queries</div>
-                <div className="empty-subtitle">
-                  Enter a crop, your query, and optional location to receive a grounded agricultural advisory sourced from curated ICAR publications.
+        {/* Right Column: Advisory & Context Results */}
+        <div className="content-column">
+          {/* Empty Initial State */}
+          {!result && !error && !loading && (
+            <div className="card empty-state-card">
+              <div className="empty-state-inner">
+                <div className="empty-state-icon-wrapper">
+                  <SproutIcon size={36} className="text-emerald" />
+                </div>
+                <h3 className="empty-state-title">Agricultural Advisory Engine Ready</h3>
+                <p className="empty-state-description">
+                  Select a crop, input a farmer query, and specify an optional location. AgriIntel AI synthesizes grounded agronomic recommendations strictly citing peer-reviewed ICAR extension publications and live meteorological conditions.
+                </p>
+
+                <div className="empty-capabilities-grid">
+                  <div className="capability-item">
+                    <ShieldCheckIcon size={18} className="text-emerald" />
+                    <div className="cap-info">
+                      <div className="cap-title">Hallucination Controlled</div>
+                      <div className="cap-desc">Refuses ungrounded chemical dosage without authentic evidence.</div>
+                    </div>
+                  </div>
+
+                  <div className="capability-item">
+                    <BookOpenIcon size={18} className="text-emerald" />
+                    <div className="cap-info">
+                      <div className="cap-title">Page-Level Provenance</div>
+                      <div className="cap-desc">Every recommendation traces back to exact publication pages.</div>
+                    </div>
+                  </div>
+
+                  <div className="capability-item">
+                    <LayersIcon size={18} className="text-emerald" />
+                    <div className="cap-info">
+                      <div className="cap-title">Live Weather Grounding</div>
+                      <div className="cap-desc">Precipitation & wind alerts adjust pesticide spraying advisories.</div>
+                    </div>
+                  </div>
+                </div>
+
+                <div className="empty-demo-prompt">
+                  <span>Tip: Select any evaluation preset above to run an instant verification query.</span>
                 </div>
               </div>
             </div>
           )}
 
-          {error && (
-            <div className="card">
-              <div className="error-banner">
-                <strong>⚠ Error:</strong> {error}
+          {/* Loading Skeleton State */}
+          {loading && (
+            <div className="card loading-card">
+              <div className="loading-content">
+                <div className="loading-spinner-large" />
+                <h3 className="loading-title">Generating Agricultural Advisory...</h3>
+                <p className="loading-subtitle">
+                  Searching 1,205 ICAR chunks · Retrieving Open-Meteo forecasts · Enforcing grounding rules
+                </p>
+                <div className="loading-steps">
+                  <div className="loading-step active">
+                    <CheckCircleIcon size={14} className="text-emerald" />
+                    <span>Query Understanding & Crop Resolution</span>
+                  </div>
+                  <div className="loading-step active">
+                    <div className="step-spinner" />
+                    <span>Dense Vector Retrieval (all-MiniLM-L6-v2)</span>
+                  </div>
+                  <div className="loading-step pending">
+                    <span className="step-circle" />
+                    <span>Evidence-Grounded Synthesis & Provenance Check</span>
+                  </div>
+                </div>
               </div>
             </div>
           )}
 
-          {result && (
-            <>
+          {/* Error State */}
+          {error && !loading && (
+            <div className="card error-card">
+              <div className="error-card-header">
+                <AlertTriangleIcon size={20} className="text-rose" />
+                <h3 className="error-title">Advisory Generation Error</h3>
+              </div>
+              <p className="error-detail">{error}</p>
+              <div className="error-actions">
+                <button
+                  type="button"
+                  className="btn btn-secondary btn-sm"
+                  onClick={handleSubmit}
+                >
+                  <RefreshCwIcon size={13} />
+                  <span>Retry Request</span>
+                </button>
+              </div>
+            </div>
+          )}
+
+          {/* Active Result View */}
+          {result && !loading && (
+            <div className="results-wrapper">
               <WeatherCard weather={result.weather} />
               <AdvisoryCard data={result} />
               <SourcesCard sources={result.sources} />
-            </>
+            </div>
           )}
         </div>
       </main>
 
-      <footer>
-        AgriIntel AI · B.Tech Major Project · Agricultural Advisory grounded in ICAR publications
-        · Powered by RAG + Open-Meteo Weather
+      <footer className="app-footer">
+        <div className="footer-left">
+          <span>AgriIntel AI · Smart Agricultural Advisory & Dataset Generation</span>
+          <span className="footer-separator">|</span>
+          <span>B.Tech Final Year Major Project Evaluation</span>
+        </div>
+        <div className="footer-right">
+          <span>ICAR RAG Grounded</span>
+          <span className="footer-separator">·</span>
+          <span>Open-Meteo Intelligence</span>
+        </div>
       </footer>
     </div>
   )
