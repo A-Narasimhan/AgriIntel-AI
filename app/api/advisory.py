@@ -2,8 +2,9 @@
 Agricultural advisory, weather, and interaction dataset API routes.
 """
 
-from fastapi import APIRouter, HTTPException, Query
+from fastapi import APIRouter, HTTPException, Query, Response
 from datetime import datetime, timezone
+from typing import Optional
 import uuid
 
 from app.core.config import settings
@@ -116,17 +117,91 @@ async def get_weather_context(
     return await weather_service.get_weather(location)
 
 
+@router.get("/interactions/export")
+def export_interactions(
+    format: str = Query("jsonl", description="Export format: 'jsonl' or 'csv'"),
+    crop: Optional[str] = Query(None, description="Filter by crop name (case-insensitive)."),
+    intent: Optional[str] = Query(None, description="Filter by detected intent (case-insensitive)."),
+    evidence_grounded: Optional[bool] = Query(None, description="Filter by grounding status."),
+) -> Response:
+    """
+    Export logged farmer interactions as JSONL or CSV for dataset evaluation.
+
+    Applies the same crop, intent, and evidence_grounded filters as the
+    inspection endpoint. Records are never modified or deleted by this endpoint.
+
+    Supported formats:
+    - jsonl: newline-delimited JSON, one record per line
+    - csv:   RFC-4180-compatible CSV with a stable header row
+    """
+    fmt = format.lower().strip()
+    if fmt not in ("jsonl", "csv"):
+        raise HTTPException(
+            status_code=400,
+            detail=f"Unsupported export format '{format}'. Use 'jsonl' or 'csv'.",
+        )
+
+    if fmt == "jsonl":
+        content = dataset_service.export_jsonl(
+            crop=crop,
+            intent=intent,
+            evidence_grounded=evidence_grounded,
+        )
+        return Response(
+            content=content,
+            media_type="application/x-ndjson",
+            headers={
+                "Content-Disposition": "attachment; filename=\"interactions.jsonl\"",
+            },
+        )
+    else:
+        content = dataset_service.export_csv(
+            crop=crop,
+            intent=intent,
+            evidence_grounded=evidence_grounded,
+        )
+        return Response(
+            content=content,
+            media_type="text/csv",
+            headers={
+                "Content-Disposition": "attachment; filename=\"interactions.csv\"",
+            },
+        )
+
+
 @router.get("/interactions", response_model=InteractionListResponse)
 def list_logged_interactions(
-    limit: int = Query(20, ge=1, le=100),
-    offset: int = Query(0, ge=0),
+    limit: int = Query(20, ge=1, le=200, description="Maximum records to return (1–200)."),
+    offset: int = Query(0, ge=0, description="Number of records to skip."),
+    crop: Optional[str] = Query(None, description="Filter by crop name (case-insensitive)."),
+    intent: Optional[str] = Query(None, description="Filter by detected intent (case-insensitive)."),
+    evidence_grounded: Optional[bool] = Query(None, description="Filter by grounding status."),
 ) -> InteractionListResponse:
     """
     Retrieve logged farmer interactions for dataset inspection and research evaluation.
+
+    All filter parameters are optional and combinable. Results are ordered newest
+    first with a stable tie-breaker. Pagination metadata (total, limit, offset) is
+    always included in the response.
     """
-    records = dataset_service.list_interactions(limit=limit, offset=offset)
-    total = dataset_service.count_interactions()
-    return InteractionListResponse(total=total, interactions=records)
+    records = dataset_service.list_interactions(
+        limit=limit,
+        offset=offset,
+        crop=crop,
+        intent=intent,
+        evidence_grounded=evidence_grounded,
+    )
+    total = dataset_service.count_interactions(
+        crop=crop,
+        intent=intent,
+        evidence_grounded=evidence_grounded,
+    )
+    return InteractionListResponse(
+        total=total,
+        limit=limit,
+        offset=offset,
+        interactions=records,
+    )
 
 
 @router.get("/crops")

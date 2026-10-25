@@ -67,8 +67,12 @@ def test_interactions_endpoint():
     assert response.status_code == 200
     data = response.json()
     assert "total" in data
+    assert "limit" in data
+    assert "offset" in data
     assert "interactions" in data
     assert isinstance(data["interactions"], list)
+    assert data["limit"] == 5
+    assert data["offset"] == 0
 
 
 @pytest.fixture

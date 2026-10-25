@@ -123,9 +123,15 @@ class InteractionRecord(BaseModel):
     advisory: str
     evidence_grounded: bool
     source_count: int
+    citations: List[Dict[str, Any]] = Field(
+        default_factory=list,
+        description="Parsed source citations from raw_sources_json; empty list if not available.",
+    )
 
 
 class InteractionListResponse(BaseModel):
-    """List of recorded farmer interactions for dataset analysis."""
+    """Paginated list of recorded farmer interactions for dataset analysis."""
     total: int
+    limit: int
+    offset: int
     interactions: List[InteractionRecord]
