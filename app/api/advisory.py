@@ -67,6 +67,7 @@ async def generate_advisory(request: AdvisoryRequest) -> AdvisoryResponse:
         weather=weather_ctx,
         chunks=chunks,
         crop_stage=detected_stage,
+        intent=intent,
     )
 
     # 5. Persist interaction
