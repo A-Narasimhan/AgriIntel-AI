@@ -18,8 +18,9 @@ from app.core.schemas import RetrievedChunk, WeatherContext, SourceReference
 class LLMService:
     """Manages prompt engineering, evidence grounding, and LLM calls."""
 
-    def __init__(self):
-        self.provider = (settings.llm_provider or "mock").lower()
+    @property
+    def provider(self) -> str:
+        return (settings.llm_provider or "mock").lower()
 
     def build_grounded_prompt(
         self,
@@ -90,6 +91,7 @@ class LLMService:
     def _has_relevant_evidence(
         query: str,
         chunks: List[RetrievedChunk],
+        intent: Optional[str] = None,
     ) -> bool:
         """Reject retrieved chunks that do not support the query's intent."""
         if not chunks:
@@ -122,57 +124,105 @@ class LLMService:
             "pest": [
                 (
                     "pest", "insect", "bollworm", "whitefly",
-                    "aphid", "thrips",
+                    "aphid", "thrips", "armyworm", "borer",
+                    "caterpillar", "jassid", "planthopper", "mite",
                 ),
                 (
                     "control", "management", "monitoring",
-                    "infestation", "treatment",
+                    "infestation", "treatment", "spray",
                 ),
             ],
             "disease": [
                 (
                     "disease", "rot", "blight", "rust", "wilt",
-                    "mildew", "tikka",
+                    "mildew", "tikka", "blast", "mosaic", "virus", "spot",
                 ),
                 (
                     "control", "management", "symptom",
-                    "treatment", "prevention",
+                    "treatment", "prevention", "spray",
                 ),
             ],
             "nutrient": [
                 (
                     "fertilizer", "fertiliser", "nutrient",
-                    "urea", "npk", "dap",
+                    "urea", "npk", "dap", "potash", "zinc", "compost",
                 ),
                 (
                     "application", "deficiency", "dose",
                     "recommendation", "management",
                 ),
             ],
+            "weed": [
+                (
+                    "weed", "weeds", "weeding", "herbicide", "weedicide",
+                ),
+                (
+                    "control", "management", "spray", "application", "pre-emergence",
+                ),
+            ],
+            "cultivation": [
+                (
+                    "sow", "sowing", "seed rate", "variety", "varieties",
+                    "spacing", "transplanting", "nursery", "land preparation",
+                ),
+                (
+                    "recommended", "practice", "method", "rate", "spacing", "kg/ha",
+                ),
+            ],
+            "harvesting": [
+                (
+                    "harvest", "harvesting", "yield", "maturity", "storage",
+                ),
+                (
+                    "stage", "practice", "method", "management", "post-harvest",
+                ),
+            ],
         }
 
-        # Detect the question's intent using its wording.
-        if any(term in query_lower for term in (
-            "irrigation", "irrigate", "watering", "water requirement",
-            "drought", "water stress", "moisture stress",
-        )):
-            detected_intent = "irrigation"
-        elif any(term in query_lower for term in (
-            "pest", "insect", "bollworm", "whitefly", "aphid", "thrips",
-        )):
-            detected_intent = "pest"
-        elif any(term in query_lower for term in (
-            "disease", "rot", "blight", "rust", "wilt", "mildew", "tikka",
-        )):
-            detected_intent = "disease"
-        elif any(term in query_lower for term in (
-            "fertilizer", "fertiliser", "nutrient", "urea", "npk",
-            "dap", "deficiency",
-        )):
-            detected_intent = "nutrient"
-        else:
-            # Do not claim evidence is relevant when the intent is unknown.
-            return False
+        # Resolve intent from parameter or detect from query text
+        detected_intent = None
+        if intent:
+            if intent == "nutrient_management":
+                detected_intent = "nutrient"
+            elif intent in intent_groups:
+                detected_intent = intent
+
+        if not detected_intent:
+            if any(term in query_lower for term in (
+                "irrigation", "irrigate", "watering", "water requirement",
+                "drought", "water stress", "moisture stress",
+            )):
+                detected_intent = "irrigation"
+            elif any(term in query_lower for term in (
+                "pest", "insect", "bollworm", "whitefly", "aphid", "thrips",
+                "armyworm", "borer", "caterpillar", "jassid", "hopper",
+            )):
+                detected_intent = "pest"
+            elif any(term in query_lower for term in (
+                "disease", "rot", "blight", "rust", "wilt", "mildew", "tikka",
+                "blast", "mosaic", "virus", "leaf spot",
+            )):
+                detected_intent = "disease"
+            elif any(term in query_lower for term in (
+                "fertilizer", "fertiliser", "nutrient", "urea", "npk",
+                "dap", "deficiency", "potash", "zinc",
+            )):
+                detected_intent = "nutrient"
+            elif any(term in query_lower for term in (
+                "weed", "weeds", "weeding", "herbicide", "weedicide",
+            )):
+                detected_intent = "weed"
+            elif any(term in query_lower for term in (
+                "sowing", "seed rate", "spacing", "variety", "varieties", "transplanting",
+            )):
+                detected_intent = "cultivation"
+            elif any(term in query_lower for term in (
+                "harvest", "harvesting", "maturity", "yield", "storage",
+            )):
+                detected_intent = "harvesting"
+            else:
+                # Do not claim evidence is relevant when the intent is unknown.
+                return False
 
         groups = intent_groups[detected_intent]
 
@@ -222,7 +272,6 @@ class LLMService:
 
         return False
 
-
     async def generate_advisory(
         self,
         query: str,
@@ -231,13 +280,14 @@ class LLMService:
         weather: Optional[WeatherContext],
         chunks: List[RetrievedChunk],
         crop_stage: Optional[str] = None,
+        intent: Optional[str] = None,
     ) -> Tuple[str, List[SourceReference], bool]:
         """
         Generate grounded advisory.
         Returns (advisory_text, sources_list, is_evidence_grounded).
         """
 
-        if not self._has_relevant_evidence(query, chunks):
+        if not self._has_relevant_evidence(query, chunks, intent=intent):
             advisory = (
                 f"Reliable supporting information was not found in the curated "
                 f"knowledge base for this {crop.capitalize()} query. "
@@ -280,7 +330,7 @@ class LLMService:
         # Route to appropriate provider
         if self.provider == "gemini" and settings.gemini_api_key:
             advisory = await self._call_gemini(system_prompt, user_prompt)
-        elif (self.provider == "openai" or settings.openai_api_key) and settings.openai_api_key:
+        elif self.provider == "openai" and settings.openai_api_key:
             advisory = await self._call_openai(system_prompt, user_prompt)
         elif self.provider == "groq" and settings.groq_api_key:
             advisory = await self._call_groq(system_prompt, user_prompt)

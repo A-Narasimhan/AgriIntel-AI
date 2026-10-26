@@ -1,7 +1,7 @@
 import { useState } from 'react'
 import './index.css'
 
-const API_BASE = 'http://localhost:8000'
+const API_BASE = import.meta.env.VITE_API_BASE || 'http://localhost:8000'
 
 const CROPS = [
   { value: '', label: '— Select Crop —' },
@@ -142,15 +142,32 @@ export default function App() {
         body: JSON.stringify(payload),
       })
 
-      const data = await res.json()
+      let data = null
+      try {
+        data = await res.json()
+      } catch {
+        // Response was not JSON
+      }
 
       if (!res.ok) {
-        setError(data.detail || `Server error: ${res.status}`)
-      } else {
+        let errorMsg = `Server error (${res.status})`
+        if (data && data.detail) {
+          if (typeof data.detail === 'string') {
+            errorMsg = data.detail
+          } else if (Array.isArray(data.detail)) {
+            errorMsg = data.detail
+              .map(item => (typeof item === 'object' && item ? (item.msg || JSON.stringify(item)) : String(item)))
+              .join('; ')
+          } else if (typeof data.detail === 'object') {
+            errorMsg = JSON.stringify(data.detail)
+          }
+        }
+        setError(errorMsg)
+      } else if (data) {
         setResult(data)
       }
     } catch (err) {
-      setError(`Connection error: ${err.message}. Make sure the backend is running at ${API_BASE}`)
+      setError(`Cannot connect to AgriIntel backend (${err.message}). Ensure FastAPI server is running at ${API_BASE}.`)
     } finally {
       setLoading(false)
     }
@@ -182,7 +199,7 @@ export default function App() {
             <div className="card-title">🔍 Farmer Query</div>
 
             <div className="form-group">
-              <label htmlFor="crop-select">Target Crop *</label>
+              <label htmlFor="crop-select">Target Crop <span style={{ textTransform: 'none', color: 'var(--text-muted)' }}>(or mention in query)</span></label>
               <select
                 id="crop-select"
                 value={crop}
