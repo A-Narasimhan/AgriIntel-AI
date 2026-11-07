@@ -19,8 +19,10 @@ from app.rag.metadata import normalize_crop_name
 class LLMService:
     """Manages prompt engineering, evidence grounding, and LLM calls."""
 
-    def __init__(self):
-        self.provider = (settings.llm_provider or "mock").lower()
+    @property
+    def provider(self) -> str:
+        """Resolve current provider dynamically from settings."""
+        return (settings.llm_provider or "mock").lower()
 
     def build_grounded_prompt(
         self,
@@ -259,17 +261,17 @@ class LLMService:
                 detected_intent = "irrigation"
             elif any(term in query_lower for term in (
                 "pest", "pests", "insect", "insects", "bollworm", "whitefly", "aphid", "thrips",
-                "borer", "jassid", "armyworm", "caterpillar", "planthopper",
+                "borer", "jassid", "armyworm", "caterpillar", "planthopper", "mite",
             )):
                 detected_intent = "pest"
             elif any(term in query_lower for term in (
                 "disease", "diseases", "rot", "blight", "rust", "wilt", "mildew", "tikka",
-                "blast", "leaf curl", "leaf spot",
+                "blast", "leaf curl", "leaf spot", "mosaic", "virus",
             )):
                 detected_intent = "disease"
             elif any(term in query_lower for term in (
                 "fertilizer", "fertiliser", "nutrient", "urea", "npk",
-                "dap", "potash", "deficiency", "compost", "manure",
+                "dap", "potash", "deficiency", "compost", "manure", "zinc",
             )):
                 detected_intent = "nutrient_management"
             elif any(term in query_lower for term in (
@@ -614,7 +616,7 @@ class LLMService:
         # Route to appropriate provider
         if self.provider == "gemini" and settings.gemini_api_key:
             advisory = await self._call_gemini(system_prompt, user_prompt)
-        elif (self.provider == "openai" or settings.openai_api_key) and settings.openai_api_key:
+        elif self.provider == "openai" and settings.openai_api_key:
             advisory = await self._call_openai(system_prompt, user_prompt)
         elif self.provider == "groq" and settings.groq_api_key:
             advisory = await self._call_groq(system_prompt, user_prompt)

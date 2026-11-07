@@ -18,7 +18,7 @@ import {
   SproutIcon
 } from './components/Icons'
 
-const API_BASE = 'http://localhost:8001'
+const API_BASE = import.meta.env.VITE_API_BASE || 'http://localhost:8000'
 
 const CROPS = [
   { value: '', label: 'Select Target Crop' },
@@ -112,16 +112,33 @@ export default function App() {
         body: JSON.stringify(payload),
       })
 
-      const data = await res.json()
+      let data = null
+      try {
+        data = await res.json()
+      } catch {
+        // Non-JSON response (e.g. proxy error or gateway timeout)
+      }
 
       if (!res.ok) {
-        setError(data.detail || `Server error: HTTP ${res.status}`)
-      } else {
+        let errorMsg = `Server error: HTTP ${res.status}`
+        if (data && data.detail) {
+          if (typeof data.detail === 'string') {
+            errorMsg = data.detail
+          } else if (Array.isArray(data.detail)) {
+            errorMsg = data.detail
+              .map(item => (typeof item === 'object' && item ? (item.msg || JSON.stringify(item)) : String(item)))
+              .join('; ')
+          } else if (typeof data.detail === 'object') {
+            errorMsg = JSON.stringify(data.detail)
+          }
+        }
+        setError(errorMsg)
+      } else if (data) {
         setResult(data)
       }
     } catch (err) {
       setError(
-        `Unable to reach backend API at ${API_BASE} (${err.message || 'Network Error'}). Verify that the FastAPI service is running.`
+        `Cannot connect to AgriIntel backend (${err.message || 'Network Error'}). Ensure FastAPI server is running at ${API_BASE}.`
       )
     } finally {
       setLoading(false)
@@ -173,7 +190,7 @@ export default function App() {
               {/* Target Crop */}
               <div className="form-group">
                 <label htmlFor="crop-select" className="form-label">
-                  Target Crop <span className="label-required">*</span>
+                  Target Crop <span style={{ textTransform: 'none', color: 'var(--text-muted)' }}>(or mention in query)</span>
                 </label>
                 <div className="select-wrapper">
                   <select
