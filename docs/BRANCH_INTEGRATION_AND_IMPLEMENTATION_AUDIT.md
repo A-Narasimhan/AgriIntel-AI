@@ -1,10 +1,10 @@
-# AgriIntel AI — Branch Integration and Implementation Status Audit
+# AgriIntel AI â€” Branch Integration and Implementation Status Audit
 
-**Project:** AgriIntel AI: Smart Agricultural Advisory and Dataset Generation from Farmer Queries and Weather Intelligence  
-**Scope:** 4-Member B.Tech Major Project (Based on the *CottonBot* Research Paper)  
-**Audit & Integration Date:** November 7, 2026  
-**Integration Target Branch:** `integration/audit-consolidated`  
-**Primary Auditor:** Senior Software Engineer, Git Integration Specialist & Technical Auditor  
+**Project:** AgriIntel AI: Smart Agricultural Advisory and Dataset Generation from Farmer Queries and Weather Intelligence
+**Scope:** 4-Member B.Tech Major Project (Based on the *CottonBot* Research Paper)
+**Audit & Integration Date:** November 7, 2026
+**Integration Target Branch:** `integration/audit-consolidated`
+**Primary Auditor:** Senior Software Engineer, Git Integration Specialist & Technical Auditor
 
 ---
 
@@ -14,16 +14,16 @@
 - **Root Directory:** `D:\AgriIntel-AI`
 - **Initial Working Branch:** `teammate-kb` (ahead of `origin/teammate-kb` by 4 commits)
 - **Local Branches:**
-  - `main` (`2582b7e` — Initial commit)
-  - `implementation-checkpoint` (`7918579` — Add AgriIntel AI implementation checkpoint)
-  - `teammate-kb` (`12cfbb8` — feat: improve AgriIntel AI dashboard)
-  - `teammate-llm-frontend` (`626b91c` — frontend integration)
-  - `integration/audit-consolidated` (`0ce76d6` — Integrated consolidation branch)
+  - `main` (`2582b7e` â€” Initial commit)
+  - `implementation-checkpoint` (`7918579` â€” Add AgriIntel AI implementation checkpoint)
+  - `teammate-kb` (`12cfbb8` â€” feat: improve AgriIntel AI dashboard)
+  - `teammate-llm-frontend` (`626b91c` â€” frontend integration)
+  - `integration/audit-consolidated` (`0ce76d6` â€” Integrated consolidation branch)
 - **Remote Branches (`origin`):**
   - `origin/main` (`2582b7e`)
   - `origin/implementation-checkpoint` (`7918579`)
-  - `origin/teammate-kb` (`6401d2b` — Fix PDF text normalization and expand retrieval candidate pool)
-  - `origin/teammate-llm-frontend` (`626b91c` — frontend integration)
+  - `origin/teammate-kb` (`6401d2b` â€” Fix PDF text normalization and expand retrieval candidate pool)
+  - `origin/teammate-llm-frontend` (`626b91c` â€” frontend integration)
 
 ### 1.2 Team Authors Discovered in Git History
 1. **A-Narasimhan / Narasimhan (`narasimhanamaravadi7@gmail.com`):**
@@ -32,13 +32,8 @@
    - Knowledge base curation across 5 crops (Rice, Cotton, Maize, Groundnut, Soybean) with official ICAR/institute PDFs, source registry (`data/knowledge_base/sources.json`), knowledge base audit script (`data/audit_kb.py`), and retrieval verification script (`data/verify_retrieval_metadata.py`).
 3. **Laaibahtazaeen (`b23cs089@kitsw.ac.in`):**
    - Branch `teammate-llm-frontend`: LLM service dynamic provider property, intent parameter threading into advisory generation, expanded intent vocabulary (weed, cultivation, harvesting, mite, mosaic, virus, zinc), robust frontend API client (configurable `VITE_API_BASE`, Pydantic error parsing for arrays/objects, non-JSON response fallbacks, crop hint).
-4. **4th Team Member:**
-   - No separate Git branch or commits found under a distinct 4th author name in the repository. The project plan identifies 4 designated project roles:
-     - AI/Backend Lead
-     - Knowledge-Base Owner
-     - Weather/Dataset Owner
-     - Frontend/Testing & Evaluation Owner
-   - As documented in Section 13 below, the 4th teammate's responsibilities align with the formal evaluation and research-paper writing track.
+4. **Sangaraboina Sai Teja (Team A Implementation & Experiments Co-Lead):**
+   - Project Co-Lead for Implementation & Experiments (Team A), focused on post-exam benchmark evaluation, experimental execution, and dataset curation.
 
 ---
 
@@ -96,66 +91,66 @@ Both branches diverged from commit `6401d2b` (`Fix PDF text normalization and ex
 ```text
                                   Farmer Query
                     (e.g., "Tikka disease control in groundnut")
-                                       │
-                                       ▼
-                   ┌────────────────────────────────────────┐
-                   │        FastAPI Application Layer       │
-                   │   POST /advisory     POST /retrieve    │
-                   │   GET  /weather      GET  /crops       │
-                   │   GET  /interactions (filter & export) │
-                   └───────────────────┬────────────────────┘
-                                       │
-                                       ▼
-                   ┌────────────────────────────────────────┐
-                   │        QueryUnderstandingService       │
-                   │  • Crop Extraction & Normalization     │
-                   │  • Cross-Crop Conflict Check (HTTP 400)│
-                   │  • Intent Detection (7 categories)     │
-                   │  • Growth-Stage Extraction             │
-                   └───────────────────┬────────────────────┘
-                                       │
-                ┌──────────────────────┴──────────────────────┐
-                │                                             │
-                ▼                                             ▼
-  ┌───────────────────────────┐                 ┌───────────────────────────┐
-  │     RetrievalService      │                 │       WeatherService      │
-  │ • Query Embedding         │                 │ • Open-Meteo Geocoding    │
-  │   (all-MiniLM-L6-v2)      │                 │ • 3-Day Forecast & Alert  │
-  │ • ChromaDB (HNSW Cosine)  │                 │ • Temperature / Humidity  │
-  │ • Crop Metadata Filter    │                 │ • Graceful Fallback       │
-  │ • Candidate Pool (k >= 10)│                 └─────────────┬─────────────┘
-  │ • Intent Relevance Filter │                               │
-  │ • Disease Aspect Ranking  │                               │
-  └─────────────┬─────────────┘                               │
-                │                                             │
-                └──────────────────────┬──────────────────────┘
-                                       │
-                                       ▼
-                   ┌────────────────────────────────────────┐
-                   │            LLMService Layer            │
-                   │  • Anti-Hallucination Grounding Gate   │
-                   │    (Multi-aspect & Intent validation)  │
-                   │  • Provider Routing                    │
-                   │    (Gemini / OpenAI / Groq / Offline)  │
-                   │  • Source Provenance Citation Builder  │
-                   └───────────────────┬────────────────────┘
-                                       │
-                                       ▼
-                   ┌────────────────────────────────────────┐
-                   │         Advisory Response Model        │
-                   │  • Actionable Agronomic Advisory       │
-                   │  • Evidence Grounded Flag (True/False) │
-                   │  • Source Documents & Page Numbers     │
-                   │  • Weather Observation Summary         │
-                   └───────────────────┬────────────────────┘
-                                       │
-                                       ▼
-                   ┌────────────────────────────────────────┐
-                   │         DatasetService Persistence     │
-                   │  • SQLite interactions.db              │
-                   │  • Log Query, Crop, Weather, Advisory  │
-                   │  • Export to JSONL / CSV for Research  │
-                   └────────────────────────────────────────┘
+                                       â”‚
+                                       â–¼
+                   â”Œâ”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”
+                   â”‚        FastAPI Application Layer       â”‚
+                   â”‚   POST /advisory     POST /retrieve    â”‚
+                   â”‚   GET  /weather      GET  /crops       â”‚
+                   â”‚   GET  /interactions (filter & export) â”‚
+                   â””â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”¬â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”˜
+                                       â”‚
+                                       â–¼
+                   â”Œâ”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”
+                   â”‚        QueryUnderstandingService       â”‚
+                   â”‚  â€¢ Crop Extraction & Normalization     â”‚
+                   â”‚  â€¢ Cross-Crop Conflict Check (HTTP 400)â”‚
+                   â”‚  â€¢ Intent Detection (7 categories)     â”‚
+                   â”‚  â€¢ Growth-Stage Extraction             â”‚
+                   â””â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”¬â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”˜
+                                       â”‚
+                â”Œâ”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”´â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”
+                â”‚                                             â”‚
+                â–¼                                             â–¼
+  â”Œâ”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”                 â”Œâ”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”
+  â”‚     RetrievalService      â”‚                 â”‚       WeatherService      â”‚
+  â”‚ â€¢ Query Embedding         â”‚                 â”‚ â€¢ Open-Meteo Geocoding    â”‚
+  â”‚   (all-MiniLM-L6-v2)      â”‚                 â”‚ â€¢ 3-Day Forecast & Alert  â”‚
+  â”‚ â€¢ ChromaDB (HNSW Cosine)  â”‚                 â”‚ â€¢ Temperature / Humidity  â”‚
+  â”‚ â€¢ Crop Metadata Filter    â”‚                 â”‚ â€¢ Graceful Fallback       â”‚
+  â”‚ â€¢ Candidate Pool (k >= 10)â”‚                 â””â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”¬â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”˜
+  â”‚ â€¢ Intent Relevance Filter â”‚                               â”‚
+  â”‚ â€¢ Disease Aspect Ranking  â”‚                               â”‚
+  â””â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”¬â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”˜                               â”‚
+                â”‚                                             â”‚
+                â””â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”¬â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”˜
+                                       â”‚
+                                       â–¼
+                   â”Œâ”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”
+                   â”‚            LLMService Layer            â”‚
+                   â”‚  â€¢ Anti-Hallucination Grounding Gate   â”‚
+                   â”‚    (Multi-aspect & Intent validation)  â”‚
+                   â”‚  â€¢ Provider Routing                    â”‚
+                   â”‚    (Gemini / OpenAI / Groq / Offline)  â”‚
+                   â”‚  â€¢ Source Provenance Citation Builder  â”‚
+                   â””â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”¬â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”˜
+                                       â”‚
+                                       â–¼
+                   â”Œâ”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”
+                   â”‚         Advisory Response Model        â”‚
+                   â”‚  â€¢ Actionable Agronomic Advisory       â”‚
+                   â”‚  â€¢ Evidence Grounded Flag (True/False) â”‚
+                   â”‚  â€¢ Source Documents & Page Numbers     â”‚
+                   â”‚  â€¢ Weather Observation Summary         â”‚
+                   â””â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”¬â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”˜
+                                       â”‚
+                                       â–¼
+                   â”Œâ”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”
+                   â”‚         DatasetService Persistence     â”‚
+                   â”‚  â€¢ SQLite interactions.db              â”‚
+                   â”‚  â€¢ Log Query, Crop, Weather, Advisory  â”‚
+                   â”‚  â€¢ Export to JSONL / CSV for Research  â”‚
+                   â””â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”˜
 ```
 
 ---
@@ -169,7 +164,7 @@ Both branches diverged from commit `6401d2b` (`Fix PDF text normalization and ex
 | **Vector DB & Search** | LangChain / Vector Store | Persistent ChromaDB with HNSW Cosine Similarity | **Adapted Implementation** | Embedded locally with `sentence-transformers/all-MiniLM-L6-v2`. |
 | **Dynamic Weather** | Integrated Open-Meteo API | Integrated Open-Meteo API (Geocoding + Forecast + Fallback) | **Implemented as described** | Injects live temperature, humidity, precipitation, and 3-day trend into advisory context. |
 | **Soil-Moisture IoT Sensors** | Real-time physical IoT soil sensor telemetry | None (No physical sensor integration or IoT telemetry in codebase) | **Not Implemented** | AgriIntel relies on Open-Meteo soil-drying/precipitation indicators rather than hardware probes. |
-| **LSTM Forecasting** | LSTM neural network for temporal soil-moisture sequence forecasting | None (No LSTM, PyTorch sequence models, or weight files present) | **Not Implemented** | CottonBot’s LSTM forecasting was not ported; must **not** be claimed in the research paper. |
+| **LSTM Forecasting** | LSTM neural network for temporal soil-moisture sequence forecasting | None (No LSTM, PyTorch sequence models, or weight files present) | **Not Implemented** | CottonBotâ€™s LSTM forecasting was not ported; must **not** be claimed in the research paper. |
 | **Agentic Irrigation Tools** | Function-calling tools for irrigation triggers | Rule-grounded irrigation intent checking from ICAR guidelines | **Adapted Implementation** | Replaces tool-use loops with deterministic intent grounding and weather-linked advisory synthesis. |
 | **Hallucination Control** | System prompt instructions | 2-tier architectural guard: 1. Strict lexical & multi-aspect intent gate; 2. Hard refusal fallback on insufficient evidence | **New AgriIntel AI Extension** | Prevents ungrounded chemical dosage synthesis; verifiable via `is_evidence_grounded`. |
 | **Query Disambiguation** | Assumes cotton context | Deterministic QueryUnderstandingService with conflict validation (HTTP 400 on crop mismatch) | **New AgriIntel AI Extension** | Essential for multi-crop integrity (e.g. user selects soybean but asks about groundnut tikka). |
@@ -238,7 +233,7 @@ Both branches diverged from commit `6401d2b` (`Fix PDF text normalization and ex
 3. **Broad Multi-Topic ICAR Pages:**
    - Some state/national package-of-practices PDFs contain pages where multiple crops or mixed topics are mentioned in the same section, occasionally introducing weak passage candidates prior to intent filtering.
 4. **SentenceTransformer Cold-Start Latency:**
-   - Loading `sentence-transformers/all-MiniLM-L6-v2` in Python 3.13 on Windows takes ~15–20 seconds on cold start due to PyTorch DLL initialization. In production, this service must run as a standing persistent daemon (Uvicorn).
+   - Loading `sentence-transformers/all-MiniLM-L6-v2` in Python 3.13 on Windows takes ~15â€“20 seconds on cold start due to PyTorch DLL initialization. In production, this service must run as a standing persistent daemon (Uvicorn).
 
 ---
 
@@ -312,18 +307,18 @@ To maximize efficiency and complete both the major project implementation and th
 
 ### Track 2: Research Paper Writing & Documentation (2 Members)
 
-#### Member 3: Paper Lead — Methodology, Architecture & RAG Formulation
+#### Member 3: Paper Lead â€” Methodology, Architecture & RAG Formulation
 - **Primary Tasks:**
-  1. Write **Section 1: Introduction** — Problem statement of Indian agriculture, limitations of generic LLMs (hallucination of chemical doses, lack of regional ICAR grounding), and motivation for AgriIntel AI over CottonBot.
+  1. Write **Section 1: Introduction** â€” Problem statement of Indian agriculture, limitations of generic LLMs (hallucination of chemical doses, lack of regional ICAR grounding), and motivation for AgriIntel AI over CottonBot.
   2. Write **Section 3: System Architecture & Methodology**:
      - Mathematical formulation of RAG: Query embedding $\mathbf{q} = \mathcal{E}(x)$, candidate passage pool $\mathcal{C}_k$, and metadata filtering function $\mathcal{M}(c, \text{crop}, \text{intent})$.
      - Architectural diagrams illustrating the two-tier anti-hallucination grounding gate.
      - Formal comparison table between CottonBot and AgriIntel AI (using Section 6 of this audit).
-  3. Write **Section 4: Authoritative Knowledge Base Construction** — Curation methodology of ICAR/ICAR-institute literature across Rice, Cotton, Maize, Groundnut, and Soybean.
+  3. Write **Section 4: Authoritative Knowledge Base Construction** â€” Curation methodology of ICAR/ICAR-institute literature across Rice, Cotton, Maize, Groundnut, and Soybean.
 
-#### Member 4: Paper Co-Lead — Experimental Results, Literature Review & Dataset Analysis
+#### Member 4: Paper Co-Lead â€” Experimental Results, Literature Review & Dataset Analysis
 - **Primary Tasks:**
-  1. Write **Section 2: Related Work** — Comprehensive review of agricultural LLMs (AgriBERT, FarmVibes, CottonBot, CropDoctor), contrasting AgriIntel’s multi-crop approach with CottonBot's single-crop IoT approach.
+  1. Write **Section 2: Related Work** â€” Comprehensive review of agricultural LLMs (AgriBERT, FarmVibes, CottonBot, CropDoctor), contrasting AgriIntelâ€™s multi-crop approach with CottonBot's single-crop IoT approach.
   2. Write **Section 5: Experimental Evaluation & Results**:
      - Take experimental output tables from Member 1 and format into publication-quality LaTeX tables comparing Baselines A, B, C, and D.
      - Plot Precision@k and MRR comparative bar charts.
